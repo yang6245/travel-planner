@@ -1,0 +1,19 @@
+# 临时文件
+*.tmp
+*.bak
+*_test_*
+_*.ps1
+_*.js
+
+# 系统文件
+Thumbs.db
+.DS_Store
+desktop.ini
+
+# 编辑器文件
+.vscode/
+.idea/
+*.swp
+
+# 不上传脚本生成的临时旅程文件（保留主文件和示例文件）
+# 注意：创建新旅程.bat 和 .ps1 是工具脚本，需要保留
