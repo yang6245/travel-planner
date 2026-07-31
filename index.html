@@ -1144,13 +1144,13 @@
 <div class="top-bar">
   <button class="tool-btn weather-tool-btn" id="weatherBtn" title="查看所有目的地天气"><svg class="icon"><use xlink:href="#icon-weather-sun"/></svg>天气</button>
   <div id="syncStatus" style="font-size:12px;padding:8px 14px;background:white;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);min-height:28px;display:flex;align-items:center;"><span style="color:#888;">● 连接中...</span></div>
-  <button class="tool-btn" id="settingsBtn" title="配置 GitHub Token" style="background:linear-gradient(135deg,#6e7ff3,#9f7aea);color:white;"><svg class="icon"><use xlink:href="#icon-key"/></svg>设置</button>
   <button class="tool-btn share-btn" id="shareBtn"><svg class="icon"><use xlink:href="#icon-share"/></svg>分享</button>
   <button class="tool-btn exp-btn" id="exportBtn"><svg class="icon"><use xlink:href="#icon-download"/></svg>导出</button>
   <button class="tool-btn exp-btn" id="importBtn"><svg class="icon"><use xlink:href="#icon-upload"/></svg>导入</button>
   <button class="tool-btn" id="editToggle"><svg class="icon"><use xlink:href="#icon-edit"/></svg>编辑</button>
   <button class="tool-btn danger-btn" id="resetBtn" style="display:none;"><svg class="icon"><use xlink:href="#icon-reset"/></svg>重置数据</button>
   <button class="tool-btn" id="changePwdBtn" style="display:none;"><svg class="icon"><use xlink:href="#icon-key"/></svg>修改密码</button>
+  <button class="tool-btn" id="syncSettingsBtn" style="display:none;background:linear-gradient(135deg,#6e7ff3,#9f7aea);color:white;"><svg class="icon"><use xlink:href="#icon-key"/></svg>同步设置</button>
   <button class="tool-btn" id="tableEditBtn" style="display:none;"><svg class="icon"><use xlink:href="#icon-table"/></svg>表格编辑</button>
   <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
 </div>
@@ -1421,9 +1421,10 @@
       <button class="btn-secondary" style="padding:8px 16px;" onclick="closeTokenModal()">关闭</button>
     </div>
     <div style="background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.6;color:#555;">
-      <div style="font-weight:700;margin-bottom:6px;color:#333;">为什么需要 Token？</div>
-      行程数据存储在你的 GitHub 私有仓库中，Token 是 GitHub 的访问凭证，用于读写仓库数据。<br>
-      Token 只保存在当前浏览器中，不会上传到任何服务器。
+      <div style="font-weight:700;margin-bottom:6px;color:#333;">关于 Token</div>
+      • 普通访客<b>无需配置 Token</b>，可直接只读查看行程<br>
+      • 只有<b>管理员编辑行程</b>时才需要配置 Token（用于写入 GitHub 仓库）<br>
+      • Token 只保存在当前浏览器中，不会上传到任何服务器
     </div>
     <div style="margin-bottom:14px;">
       <label style="display:block;font-weight:600;margin-bottom:6px;font-size:13px;">GitHub Personal Access Token</label>
@@ -1472,11 +1473,17 @@ const GITHUB_CONFIG = {
   branch: 'main',
   dataPath: 'data/格聂南线/trip.json',  // 行程数据在仓库中的存储路径
   apiBase: 'https://api.github.com/repos',
+  // raw 地址：Public 仓库无需 Token 即可读取（只读模式）
+  rawBase: 'https://raw.githubusercontent.com',
   // Token 存储在 localStorage，每个设备只需输入一次
   getToken: function() { try { return localStorage.getItem('gh_token') || ''; } catch(e) { return ''; } },
   setToken: function(t) { try { localStorage.setItem('gh_token', t); } catch(e) {} },
   removeToken: function() { try { localStorage.removeItem('gh_token'); } catch(e) {} },
-  hasToken: function() { return !!this.getToken(); }
+  hasToken: function() { return !!this.getToken(); },
+  // 获取 raw 只读地址（无需 Token）
+  getRawUrl: function() {
+    return this.rawBase + '/' + this.owner + '/' + this.repo + '/' + this.branch + '/' + this.dataPath + '?t=' + Date.now();
+  }
 };
 let cloudSyncing = false;       // 正在同步中
 let cloudLastUpdate = 0;        // 云端数据最后更新时间戳
@@ -1674,11 +1681,22 @@ function testToken() {
 function removeTokenHandler() {
   GITHUB_CONFIG.removeToken();
   document.getElementById('tokenInput').value = '';
-  showToast('Token 已删除，切换到离线模式');
+  showToast('Token 已删除，切换到只读模式');
   setTimeout(function() { location.reload(); }, 1500);
 }
 
-// 从 GitHub 仓库加载行程数据（单文件存储，无需分片）
+// 只读加载：通过 raw.githubusercontent.com 读取（无需 Token，适合访客查看）
+function cloudLoadReadOnly() {
+  return fetch(GITHUB_CONFIG.getRawUrl()).then(function(r) {
+    if (!r.ok) throw new Error('raw 读取失败 ' + r.status);
+    return r.json();
+  }).then(function(tripData) {
+    cloudLastUpdate = tripData._updatedAt || 0;
+    return tripData;
+  });
+}
+
+// 从 GitHub 仓库加载行程数据（需 Token，可获取 SHA 用于后续更新）
 function cloudLoad() {
   var url = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
             '/contents/' + encodeURIComponent(GITHUB_CONFIG.dataPath) + '?ref=' + GITHUB_CONFIG.branch +
@@ -1736,6 +1754,8 @@ function updateSyncStatus(status) {
   } else if (status === 'synced') {
     var time = new Date().toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
     el.innerHTML = '<span style="color:#00b894;">● 已同步 ' + time + '</span>';
+  } else if (status === 'readonly') {
+    el.innerHTML = '<span style="color:#0984e3;">● 只读模式</span>';
   } else if (status === 'offline') {
     el.innerHTML = '<span style="color:#e17055;">● 离线模式</span>';
   } else if (status === 'error') {
@@ -1745,14 +1765,14 @@ function updateSyncStatus(status) {
   }
 }
 
-// 轮询检查云端是否有更新（通过 GitHub API 检查 _updatedAt）
+// 轮询检查云端是否有更新
 function startCloudPoll() {
   if (cloudPollTimer) clearInterval(cloudPollTimer);
   cloudPollTimer = setInterval(function() {
     if (cloudSyncing || editMode) return; // 正在同步或编辑中不轮询
-    if (!GITHUB_CONFIG.hasToken()) return; // 没有Token不轮询
-    // 通过 cloudLoad 检查是否有更新
-    cloudLoad().then(function(data) {
+    // 有 Token 用 API（可获取 SHA），无 Token 用 raw（只读）
+    var loadFn = GITHUB_CONFIG.hasToken() ? cloudLoad : cloudLoadReadOnly;
+    loadFn().then(function(data) {
       if (data && data._updatedAt && data._updatedAt > cloudLastUpdate) {
         // 云端有新版本
         updateSyncStatus('updating');
@@ -1770,53 +1790,71 @@ function startCloudPoll() {
         }
         updateBadges();
         isCloudSave = false;
-        updateSyncStatus('synced');
+        updateSyncStatus(GITHUB_CONFIG.hasToken() ? 'synced' : 'readonly');
         showToast('行程已更新到最新版本');
       }
     }).catch(function() {});
-  }, 60000); // 60 秒轮询一次（GitHub API 有频率限制，不宜太频繁）
+  }, 60000); // 60 秒轮询一次
 }
 
 function loadData() {
-  // 没有 Token 时直接走离线模式
-  if (!GITHUB_CONFIG.hasToken()) {
-    updateSyncStatus('offline');
-    var loaded = false;
-    if (window.__EMBEDDED_TRIP__) {
-      try { trip = JSON.parse(window.__EMBEDDED_TRIP__); fixTripData(); loaded = true; } catch(e) {}
-    }
-    if (!loaded) {
-      try {
-        var saved = localStorage.getItem('travelTemplate_default');
-        if (saved) { trip = JSON.parse(saved); fixTripData(); loaded = true; }
-      } catch(e) {}
-    }
-    if (!loaded) {
-      trip = JSON.parse(JSON.stringify(defaultTrip));
-      fixTripData();
-    }
-    initTabs();
-    renderOverviewHome();
-    updateBadges();
-    initMap();
-    // 提示用户配置 Token
-    setTimeout(function() {
-      showToast('提示：请点击右上角设置按钮配置 GitHub Token 以启用云端同步');
-    }, 2000);
+  // 有 Token：可编辑模式，通过 GitHub API 加载（获取 SHA）
+  if (GITHUB_CONFIG.hasToken()) {
+    updateSyncStatus('syncing');
+    cloudLoad().then(function(data) {
+      if (data && data.days && data.days.length > 0) {
+        trip = data;
+        fixTripData();
+        cloudLastUpdate = data._updatedAt || 0;
+        try { localStorage.setItem(storageKey(), JSON.stringify(trip)); } catch(e) {}
+        updateSyncStatus('synced');
+        startCloudPoll();
+        initTabs();
+        renderOverviewHome();
+        updateBadges();
+        initMap();
+      } else {
+        throw new Error('云端数据为空');
+      }
+    }).catch(function(err) {
+      console.warn('云端加载失败，使用本地数据:', err);
+      updateSyncStatus('offline');
+      var loaded = false;
+      if (window.__EMBEDDED_TRIP__) {
+        try { trip = JSON.parse(window.__EMBEDDED_TRIP__); fixTripData(); loaded = true; } catch(e) {}
+      }
+      if (!loaded) {
+        try {
+          var saved = localStorage.getItem('travelTemplate_default');
+          if (saved) { trip = JSON.parse(saved); fixTripData(); loaded = true; }
+        } catch(e) {}
+      }
+      if (!loaded) {
+        trip = JSON.parse(JSON.stringify(defaultTrip));
+        fixTripData();
+      }
+      initTabs();
+      renderOverviewHome();
+      updateBadges();
+      initMap();
+      if (err.message && err.message.indexOf('不存在') !== -1) {
+        setTimeout(function() {
+          showToast('首次使用，请编辑或保存一次行程以创建云端数据');
+        }, 2000);
+      }
+    });
     return;
   }
-  // 有 Token 时先尝试从云端加载
+  // 无 Token：只读模式，通过 raw 地址加载（无需认证）
   updateSyncStatus('syncing');
-  cloudLoad().then(function(data) {
+  cloudLoadReadOnly().then(function(data) {
     if (data && data.days && data.days.length > 0) {
       trip = data;
       fixTripData();
       cloudLastUpdate = data._updatedAt || 0;
       try { localStorage.setItem(storageKey(), JSON.stringify(trip)); } catch(e) {}
-      updateSyncStatus('synced');
-      // 启动轮询
+      updateSyncStatus('readonly');
       startCloudPoll();
-      // 触发界面渲染
       initTabs();
       renderOverviewHome();
       updateBadges();
@@ -1825,9 +1863,8 @@ function loadData() {
       throw new Error('云端数据为空');
     }
   }).catch(function(err) {
-    console.warn('云端加载失败，使用本地数据:', err);
+    console.warn('只读加载失败，使用本地数据:', err);
     updateSyncStatus('offline');
-    // 回退到本地数据
     var loaded = false;
     if (window.__EMBEDDED_TRIP__) {
       try { trip = JSON.parse(window.__EMBEDDED_TRIP__); fixTripData(); loaded = true; } catch(e) {}
@@ -1842,17 +1879,10 @@ function loadData() {
       trip = JSON.parse(JSON.stringify(defaultTrip));
       fixTripData();
     }
-    // 离线模式也要渲染界面
     initTabs();
     renderOverviewHome();
     updateBadges();
     initMap();
-    // 如果是 404（首次使用），提示用户保存一次以创建云端数据
-    if (err.message && err.message.indexOf('不存在') !== -1) {
-      setTimeout(function() {
-        showToast('首次使用，请编辑或保存一次行程以创建云端数据');
-      }, 2000);
-    }
   });
 }
 
@@ -3572,8 +3602,15 @@ function toggleEditMode() {
   document.getElementById('resetBtn').style.display = editMode ? 'inline-flex' : 'none';
   document.getElementById('addPOIBtn').style.display = editMode ? 'flex' : 'none';
   document.getElementById('changePwdBtn').style.display = editMode ? 'inline-flex' : 'none';
+  document.getElementById('syncSettingsBtn').style.display = editMode ? 'inline-flex' : 'none';
   document.getElementById('tableEditBtn').style.display = editMode ? 'inline-flex' : 'none';
-  if (editMode) showToast('已进入编辑模式，可编辑POI / 记账 / 设置起点');
+  if (editMode) {
+    if (!GITHUB_CONFIG.hasToken()) {
+      showToast('未配置 Token，请点击"同步设置"配置后再编辑保存');
+    } else {
+      showToast('已进入编辑模式，可编辑POI / 记账 / 设置起点');
+    }
+  }
   // 刷新时间轴和徽章，使编辑模式样式生效
   renderTimeline(currentDay);
   updateBadges();
@@ -4691,7 +4728,7 @@ document.getElementById('tableImportFile').addEventListener('change', function(e
 // 按钮事件绑定
 document.getElementById('tableEditBtn').addEventListener('click', openTableEdit);
 document.getElementById('weatherBtn').addEventListener('click', openWeatherModal);
-document.getElementById('settingsBtn').addEventListener('click', openTokenModal);
+document.getElementById('syncSettingsBtn').addEventListener('click', openTokenModal);
 // tableEditModal 不再点击外部关闭，避免误触丢失编辑内容
 
 /* ====================== 启动 ====================== */
