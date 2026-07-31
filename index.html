@@ -1791,14 +1791,44 @@ function updateSyncStatus(status) {
   }
 }
 
+// 轮询专用：获取云端数据但不修改 cloudLastUpdate（避免对比失效）
+// 只读模式优先用 raw 地址（实时），CDN 兜底；Token 模式用 API
+function cloudPollCheck() {
+  if (GITHUB_CONFIG.hasToken()) {
+    var url = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
+              '/contents/' + encodeURIComponent(GITHUB_CONFIG.dataPath) + '?ref=' + GITHUB_CONFIG.branch +
+              '&t=' + Date.now();
+    return fetchWithTimeout(url, { headers: githubHeaders() }, 10000).then(function(r) {
+      if (!r.ok) throw new Error('API 读取失败 ' + r.status);
+      return r.json();
+    }).then(function(data) {
+      githubFileSha = data.sha || '';
+      var content = base64ToUtf8(data.content.replace(/\n/g, ''));
+      return JSON.parse(content);
+    });
+  } else {
+    // 只读：优先 raw（实时无缓存），失败再走 CDN
+    return fetchWithTimeout(GITHUB_CONFIG.getRawUrl(), {}, 10000)
+      .then(function(r) {
+        if (!r.ok) throw new Error('raw 读取失败');
+        return r.json();
+      })
+      .catch(function() {
+        return fetchWithTimeout(GITHUB_CONFIG.getCdnUrl(), {}, 10000)
+          .then(function(r) {
+            if (!r.ok) throw new Error('CDN 读取失败');
+            return r.json();
+          });
+      });
+  }
+}
+
 // 轮询检查云端是否有更新
 function startCloudPoll() {
   if (cloudPollTimer) clearInterval(cloudPollTimer);
   cloudPollTimer = setInterval(function() {
     if (cloudSyncing || editMode) return; // 正在同步或编辑中不轮询
-    // 有 Token 用 API（可获取 SHA），无 Token 用 raw（只读）
-    var loadFn = GITHUB_CONFIG.hasToken() ? cloudLoad : cloudLoadReadOnly;
-    loadFn().then(function(data) {
+    cloudPollCheck().then(function(data) {
       if (data && data._updatedAt && data._updatedAt > cloudLastUpdate) {
         // 云端有新版本
         updateSyncStatus('updating');
