@@ -1475,6 +1475,8 @@ const GITHUB_CONFIG = {
   apiBase: 'https://api.github.com/repos',
   // raw 地址：Public 仓库无需 Token 即可读取（只读模式）
   rawBase: 'https://raw.githubusercontent.com',
+  // jsDelivr CDN：国内访问速度快，作为只读模式的首选源
+  cdnBase: 'https://cdn.jsdelivr.net/gh',
   // Token 存储在 localStorage，每个设备只需输入一次
   getToken: function() { try { return localStorage.getItem('gh_token') || ''; } catch(e) { return ''; } },
   setToken: function(t) { try { localStorage.setItem('gh_token', t); } catch(e) {} },
@@ -1483,8 +1485,23 @@ const GITHUB_CONFIG = {
   // 获取 raw 只读地址（无需 Token）
   getRawUrl: function() {
     return this.rawBase + '/' + this.owner + '/' + this.repo + '/' + this.branch + '/' + this.dataPath + '?t=' + Date.now();
+  },
+  // 获取 jsDelivr CDN 地址（国内访问快，解决 raw.githubusercontent.com 慢的问题）
+  getCdnUrl: function() {
+    return this.cdnBase + '/' + this.owner + '/' + this.repo + '@' + this.branch + '/' + this.dataPath + '?t=' + Date.now();
   }
 };
+// 带超时的 fetch（防止网络慢导致一直卡在"同步中"）
+function fetchWithTimeout(url, options, timeoutMs) {
+  timeoutMs = timeoutMs || 10000;
+  options = options || {};
+  return Promise.race([
+    fetch(url, options),
+    new Promise(function(_, reject) {
+      setTimeout(function() { reject(new Error('请求超时（' + timeoutMs/1000 + '秒）')); }, timeoutMs);
+    })
+  ]);
+}
 let cloudSyncing = false;       // 正在同步中
 let cloudLastUpdate = 0;        // 云端数据最后更新时间戳
 let cloudPollTimer = null;      // 轮询定时器
@@ -1685,15 +1702,24 @@ function removeTokenHandler() {
   setTimeout(function() { location.reload(); }, 1500);
 }
 
-// 只读加载：通过 raw.githubusercontent.com 读取（无需 Token，适合访客查看）
+// 只读加载：优先用 jsDelivr CDN（国内快），失败回退 raw.githubusercontent.com
 function cloudLoadReadOnly() {
-  return fetch(GITHUB_CONFIG.getRawUrl()).then(function(r) {
-    if (!r.ok) throw new Error('raw 读取失败 ' + r.status);
-    return r.json();
-  }).then(function(tripData) {
-    cloudLastUpdate = tripData._updatedAt || 0;
-    return tripData;
-  });
+  return fetchWithTimeout(GITHUB_CONFIG.getCdnUrl(), {}, 10000)
+    .then(function(r) {
+      if (!r.ok) throw new Error('CDN 读取失败 ' + r.status);
+      return r.json();
+    })
+    .catch(function(cdnErr) {
+      console.warn('CDN 加载失败，尝试 raw 源:', cdnErr.message);
+      return fetchWithTimeout(GITHUB_CONFIG.getRawUrl(), {}, 10000).then(function(r) {
+        if (!r.ok) throw new Error('raw 读取失败 ' + r.status);
+        return r.json();
+      });
+    })
+    .then(function(tripData) {
+      cloudLastUpdate = tripData._updatedAt || 0;
+      return tripData;
+    });
 }
 
 // 从 GitHub 仓库加载行程数据（需 Token，可获取 SHA 用于后续更新）
@@ -1701,7 +1727,7 @@ function cloudLoad() {
   var url = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
             '/contents/' + encodeURIComponent(GITHUB_CONFIG.dataPath) + '?ref=' + GITHUB_CONFIG.branch +
             '&t=' + Date.now(); // 时间戳防止缓存
-  return fetch(url, { headers: githubHeaders() }).then(function(r) {
+  return fetchWithTimeout(url, { headers: githubHeaders() }, 10000).then(function(r) {
     if (r.status === 404) throw new Error('云端数据不存在（首次使用请先保存一次）');
     if (!r.ok) throw new Error('GitHub API 返回 ' + r.status);
     return r.json();
