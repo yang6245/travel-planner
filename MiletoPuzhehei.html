@@ -1510,7 +1510,7 @@ const GITHUB_CONFIG = {
   owner: 'yang6245',
   repo: 'travel-planner',
   branch: 'main',
-  dataPath: 'data/港澳5日游/trip.json',  // 行程数据在仓库中的存储路径（数据仍在此路径，待迁移）
+  dataPath: 'data/MiletoPuzhehei/trip.json',  // 行程数据在仓库中的存储路径
   apiBase: 'https://api.github.com/repos',
   // raw 地址：Public 仓库无需 Token 即可读取（只读模式）
   rawBase: 'https://raw.githubusercontent.com',
@@ -1712,27 +1712,44 @@ function testToken() {
   var result = document.getElementById('tokenTestResult');
   if (!token) { showToast('请输入 Token'); return; }
   result.style.display = 'block';
-  result.innerHTML = '<span style="color:#4facfe;">正在测试...</span>';
+  result.innerHTML = '<span style="color:#4facfe;">正在测试（1/2 检查仓库权限）...</span>';
   // 临时设置 Token 测试
   var oldToken = GITHUB_CONFIG.getToken();
   GITHUB_CONFIG.setToken(token);
+  // 第一步：测试仓库是否可访问
   fetch(GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo, {
     headers: githubHeaders()
   }).then(function(r) {
-    if (r.status === 200) {
-      result.innerHTML = '<span style="color:#00b894;">✓ 连接成功！仓库可访问</span>';
-    } else if (r.status === 401) {
-      result.innerHTML = '<span style="color:#e74c3c;">✗ Token 无效或已过期</span>';
+    if (r.status === 401) {
+      result.innerHTML = '<span style="color:#e74c3c;">✗ Token 无效或已过期（401）。请确认 Token 未过期，且生成时勾选了 <b>repo</b> 权限</span>';
       GITHUB_CONFIG.setToken(oldToken || '');
+      return null;
     } else if (r.status === 404) {
-      result.innerHTML = '<span style="color:#e74c3c;">✗ 仓库不存在或无权访问</span>';
+      result.innerHTML = '<span style="color:#e74c3c;">✗ 仓库不存在或无权访问（404）。请确认 owner/repo 配置正确</span>';
       GITHUB_CONFIG.setToken(oldToken || '');
+      return null;
+    } else if (r.status !== 200) {
+      result.innerHTML = '<span style="color:#e74c3c;">✗ 仓库访问异常，状态码 ' + r.status + '</span>';
+      GITHUB_CONFIG.setToken(oldToken || '');
+      return null;
+    }
+    // 第二步：测试数据文件是否存在
+    result.innerHTML = '<span style="color:#4facfe;">正在测试（2/2 检查数据文件）...</span>';
+    var dataUrl = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
+                  '/contents/' + encodeURIComponent(GITHUB_CONFIG.dataPath) + '?ref=' + GITHUB_CONFIG.branch + '&t=' + Date.now();
+    return fetch(dataUrl, { headers: githubHeaders() });
+  }).then(function(r2) {
+    if (!r2) return; // 第一步失败已处理
+    if (r2.status === 200) {
+      result.innerHTML = '<span style="color:#00b894;">✓ 连接成功！仓库可访问，数据文件存在</span>';
+    } else if (r2.status === 404) {
+      result.innerHTML = '<span style="color:#fdcb6e;">✓ Token 有效，但数据文件不存在（' + GITHUB_CONFIG.dataPath + '）。保存一次行程即可创建</span>';
     } else {
-      result.innerHTML = '<span style="color:#e74c3c;">✗ 返回状态码 ' + r.status + '</span>';
+      result.innerHTML = '<span style="color:#e74c3c;">✗ 数据文件访问异常，状态码 ' + r2.status + '</span>';
       GITHUB_CONFIG.setToken(oldToken || '');
     }
   }).catch(function(err) {
-    result.innerHTML = '<span style="color:#e74c3c;">✗ 网络错误：' + err.message + '</span>';
+    result.innerHTML = '<span style="color:#e74c3c;">✗ 网络错误：' + err.message + '（可能是网络无法连接 GitHub API，国内常见此问题）</span>';
     GITHUB_CONFIG.setToken(oldToken || '');
   });
 }
@@ -1848,6 +1865,12 @@ function updateSyncStatus(status) {
     el.innerHTML = '<span style="color:#e74c3c;">● 同步失败</span>';
   } else if (status === 'updating') {
     el.innerHTML = '<span style="color:#fdcb6e;">↑ 发现新版本，正在更新...</span>';
+  } else if (status === 'token_error') {
+    el.innerHTML = '<span style="color:#e74c3c;" title="Token无效或权限不足">● Token无效（点设置修复）</span>';
+  } else if (status === 'token_offline') {
+    el.innerHTML = '<span style="color:#fdcb6e;" title="Token已保存，但网络无法连接GitHub API">● Token已保存·只读(网络异常)</span>';
+  } else if (status === 'token_noexist') {
+    el.innerHTML = '<span style="color:#fdcb6e;" title="云端数据文件不存在">● Token已保存·云端无数据</span>';
   }
 }
 
@@ -1933,31 +1956,79 @@ function loadData() {
         throw new Error('云端数据为空');
       }
     }).catch(function(err) {
-      console.warn('云端加载失败，使用本地数据:', err);
-      updateSyncStatus('offline');
-      var loaded = false;
-      if (window.__EMBEDDED_TRIP__) {
-        try { trip = JSON.parse(window.__EMBEDDED_TRIP__); fixTripData(); loaded = true; } catch(e) {}
+      console.warn('云端加载失败:', err);
+      var errMsg = (err && err.message) ? err.message : '';
+      var isAuthError = errMsg.indexOf('401') !== -1;
+      var isNotFound = errMsg.indexOf('不存在') !== -1 || errMsg.indexOf('404') !== -1;
+      var isNetworkError = errMsg.indexOf('超时') !== -1 || errMsg.indexOf('timeout') !== -1 ||
+                          errMsg.indexOf('Failed to fetch') !== -1 || errMsg.indexOf('NetworkError') !== -1 ||
+                          errMsg.indexOf('network') !== -1;
+
+      // 根据错误类型显示具体提示
+      if (isAuthError) {
+        showToast('❌ Token 无效或权限不足！请点击"设置"检查 Token 是否正确，且勾选了 repo 权限');
+        updateSyncStatus('token_error');
+      } else if (isNotFound) {
+        showToast('⚠️ 云端数据文件不存在，请先点"编辑"→"保存"创建一次数据');
+        updateSyncStatus('token_noexist');
+      } else if (isNetworkError) {
+        showToast('⚠️ 网络无法连接 GitHub API，正在尝试只读模式加载...');
+        updateSyncStatus('token_offline');
+      } else {
+        showToast('⚠️ 云端加载失败：' + errMsg);
+        updateSyncStatus('offline');
       }
-      if (!loaded) {
-        try {
-          var saved = localStorage.getItem('travelTemplate_default');
-          if (saved) { trip = JSON.parse(saved); fixTripData(); loaded = true; }
-        } catch(e) {}
+
+      // 辅助函数：从本地/嵌入数据加载
+      function loadLocalFallback() {
+        var loaded = false;
+        if (window.__EMBEDDED_TRIP__) {
+          try { trip = JSON.parse(window.__EMBEDDED_TRIP__); fixTripData(); loaded = true; } catch(e) {}
+        }
+        if (!loaded) {
+          try {
+            var saved = localStorage.getItem('travelTemplate_default');
+            if (saved) { trip = JSON.parse(saved); fixTripData(); loaded = true; }
+          } catch(e) {}
+        }
+        if (!loaded) {
+          trip = JSON.parse(JSON.stringify(defaultTrip));
+          fixTripData();
+        }
+        initTabs();
+        renderOverviewHome();
+        updateBadges();
+        initMap();
       }
-      if (!loaded) {
-        trip = JSON.parse(JSON.stringify(defaultTrip));
-        fixTripData();
+
+      // 网络错误或404时：尝试用只读模式（raw/CDN）加载数据，至少能显示行程
+      if (isNetworkError || isNotFound) {
+        cloudLoadReadOnly().then(function(data) {
+          if (data && data.days && data.days.length > 0) {
+            trip = data;
+            fixTripData();
+            cloudLastUpdate = data._updatedAt || 0;
+            try { localStorage.setItem(storageKey(), JSON.stringify(trip)); } catch(e) {}
+            initTabs();
+            renderOverviewHome();
+            updateBadges();
+            initMap();
+            if (isNotFound) {
+              updateSyncStatus('token_noexist');
+            } else {
+              updateSyncStatus('token_offline');
+            }
+          } else {
+            loadLocalFallback();
+          }
+        }).catch(function() {
+          loadLocalFallback();
+        });
+        return;
       }
-      initTabs();
-      renderOverviewHome();
-      updateBadges();
-      initMap();
-      if (err.message && err.message.indexOf('不存在') !== -1) {
-        setTimeout(function() {
-          showToast('首次使用，请编辑或保存一次行程以创建云端数据');
-        }, 2000);
-      }
+
+      // 401或其他错误：直接使用本地数据
+      loadLocalFallback();
     });
     return;
   }
