@@ -274,7 +274,7 @@
   /* 天气嵌入卡片（靠右浮动，毛玻璃，纵向单行，露出左侧背景） */
   .poi-weather {
     position:absolute; right:8px; top:42px; z-index:3;
-    width:168px;
+    width:192px;
     background:rgba(0,0,0,.32); backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px);
     border-radius:7px; padding:2px 6px; border:1px solid rgba(255,255,255,.15);
     max-height:72px; overflow:hidden;
@@ -485,12 +485,12 @@
   .map-panel { flex:1; position:relative; min-width:0; }
   #mapContainer { width:100%; height:100%; min-height:400px; }
 
+  .mobile-map-back { display: none; }
   .map-legend {
     position:absolute; bottom:16px; left:16px; background:white; border-radius:10px;
-    padding:10px 14px; box-shadow:0 4px 24px rgba(0,0,0,.12); z-index:100;
+    padding:8px 12px; box-shadow:0 4px 24px rgba(0,0,0,.12); z-index:100;
     max-width:calc(100% - 32px);
   }
-  .legend-title { font-size:11px; font-weight:700; margin-bottom:6px; text-transform:uppercase; letter-spacing:1px; }
   .legend-items { display:flex; gap:10px; flex-wrap:wrap; }
   .legend-item { display:flex; align-items:center; gap:5px; font-size:11px; color:var(--text-light); }
   .legend-dot { width:8px; height:8px; border-radius:50%; }
@@ -528,6 +528,7 @@
     background:white; border-radius:18px; max-width:640px; width:100%;
     max-height:90vh; overflow:hidden; display:flex; flex-direction:column;
     animation:slideUp .3s;
+    position:relative;  /* 配合费用弹窗关闭按钮 absolute 定位 */
   }
   @keyframes slideUp { from{opacity:0;transform:translateY(30px)} to{opacity:1;transform:translateY(0)} }
   .modal-header { position:relative; }
@@ -691,7 +692,7 @@
     .poi-side-actions .eta-mini-btn, .poi-side-actions .nav-btn { padding:3px 5px; font-size:8px; min-height:20px; border-radius:5px; gap:2px; }
     .poi-top-bar { top:5px; left:5px; right:5px; }
     .poi-time-pill, .poi-tag { font-size:8px; padding:1px 5px; border-radius:8px; }
-    .poi-weather { top:28px; right:5px; left:auto; width:142px; padding:1px 3px; border-radius:5px; max-height:68px; }
+    .poi-weather { top:28px; right:5px; left:auto; width:160px; padding:1px 3px; border-radius:5px; max-height:68px; }
     .poi-weather-days { gap:1px; }
     .poi-weather-day { padding:0 3px; gap:3px; }
     .poi-weather-day .wd-icon { font-size:9px; }
@@ -708,8 +709,8 @@
     .day-header { margin-bottom:10px; }
     /* 总览首页：去除两侧留白，卡片占满宽度 */
     .overview-home { padding:14px 8px; }
-    .overview-stats { grid-template-columns:repeat(2,1fr); gap:8px; }
-    .overview-stat-item { padding:10px 6px; }
+    .overview-stats { grid-template-columns:repeat(3,1fr); gap:6px; }  /* 3个图标一排 */
+    .overview-stat-item { padding:10px 4px; }
     .overview-day-cards { grid-template-columns:1fr; gap:10px; }
     .overview-day-card { padding:12px; }
     .map-panel {
@@ -719,7 +720,6 @@
     }
     #mapContainer { min-height:200px; }
     .map-legend { bottom:8px; left:8px; padding:5px 7px; font-size:9px; max-width:calc(100% - 60px); }
-    .map-legend .legend-title { font-size:8px; margin-bottom:3px; letter-spacing:0; }
     .map-legend .legend-items { gap:4px; }
     .map-legend .legend-item { font-size:8px; gap:2px; }
     .map-legend .legend-dot { width:5px; height:5px; }
@@ -749,6 +749,19 @@
     /* 让表格编辑内容区域独立滚动 */
     #tableEditContent { flex:1 1 auto; overflow-y:auto; overflow-x:hidden; min-height:0; -webkit-overflow-scrolling:touch; }
     .table-edit-tip, .table-edit-save { flex:none; }
+    /* 表格编辑底部栏（提示/预算汇总/保存按钮）：手机端进一步压缩，让卡片编辑区获得更多空间 */
+    .table-edit-tip { font-size:11px !important; padding:7px 10px !important; margin-top:6px !important; line-height:1.4 !important; }
+    .table-edit-tip .icon { font-size:11px !important; }
+    #budgetSummaryPanel { padding:7px 8px !important; margin:6px 10px !important; }
+    #budgetSummaryPanel > div:first-child { margin-bottom:4px !important; }
+    #budgetSummaryPanel > div:first-child > div:first-child { font-size:12px !important; }
+    #budgetSummaryPanel > div:first-child > button { padding:2px 6px !important; font-size:9px !important; }
+    #budgetSummaryContent { gap:4px !important; grid-template-columns:repeat(auto-fit,minmax(78px,1fr)) !important; }
+    #budgetSummaryContent > div { padding:3px 4px !important; border-radius:5px !important; }
+    #budgetSummaryContent > div > div:first-child { font-size:9px !important; }
+    #budgetSummaryContent > div > div:last-child { font-size:13px !important; }
+    .table-edit-save { margin-top:6px !important; }
+    .table-edit-save .btn-primary { padding:7px 18px !important; font-size:13px !important; }
     .table-edit-form table { display:block; overflow-x:auto; white-space:nowrap; -webkit-overflow-scrolling:touch; }
     .table-edit-form table::-webkit-scrollbar { height:6px; }
     .table-edit-form table::-webkit-scrollbar-thumb { background:#cbd5e1; border-radius:3px; }
@@ -788,9 +801,9 @@
     .overview-hero-title { font-size:18px; }
     .overview-hero-icon { width:48px; height:48px; font-size:28px; }
     .overview-hero-card { padding:14px; gap:10px; }
-    .overview-stats { grid-template-columns:repeat(2,1fr); gap:6px; }
-    .overview-stat-item { padding:10px 6px; }
-    .overview-stat-num { font-size:20px; }
+    .overview-stats { grid-template-columns:repeat(3,1fr); gap:5px; }  /* 3个图标一排 */
+    .overview-stat-item { padding:8px 3px; }
+    .overview-stat-num { font-size:18px; }
     .edit-form, .start-form, .expense-form { padding:16px; }
     .edit-form h2, .start-form h2, .expense-form h2, .expense-modal .modal-title { font-size:18px; margin-bottom:14px; }
     .form-group { margin-bottom:12px; }
@@ -984,12 +997,67 @@
     grid-template-columns: 1fr 1fr;
     gap: 12px;
   }
+  .overview-day-card-cover {
+    position: relative;
+    height: 110px;
+    padding: 12px 14px;
+    background-color: #cbd5e1;  /* 兜底色：封面图加载失败/尺寸异常时不显白 */
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+  }
+  .overview-day-card-cover > .overview-day-edit {
+    position: absolute !important;
+    top: 8px; right: 8px;
+    z-index: 10 !important;
+    pointer-events: auto !important;
+  }
+  .overview-day-edit {
+    width: 32px; height: 32px;
+    border: none; border-radius: 50%;
+    display: none; align-items: center; justify-content: center;  /* 默认隐藏：仅编辑模式显示，防止普通访客误入编辑 */
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(0,0,0,.18);
+    color: #4a5568;
+    transition: transform .2s, background .2s;
+    flex-shrink: 0;
+  }
+  .overview-day-edit .icon { font-size: 16px; }
+  .overview-day-edit:active { transform: scale(.92); background: #f1f5f9; }
+  body.edit-mode .overview-day-edit {
+    display: flex;
+  }
+  .overview-day-card-cover-overlay {
+    position: absolute; inset: 0;
+    pointer-events: none;
+  }
+
   .overview-day-card {
-    padding: 14px;
+    padding: 0;
     background: #fff;
     border-radius: 12px;
     box-shadow: 0 2px 12px rgba(0,0,0,0.06);
     transition: transform 0.2s, box-shadow 0.2s;
+    overflow: hidden;
+  }
+  .overview-day-card-cover-content {
+    flex: 1; min-width: 0;
+    color: #fff;
+    text-shadow: 0 2px 8px rgba(0,0,0,.45);
+  }
+  .overview-day-card-cover-content .overview-day-badge {
+    display: inline-block;
+    margin-bottom: 4px;
+  }
+  .overview-day-card-cover-content .overview-day-card-title {
+    color: #fff !important;   /* 强制纯白，避免被 base .overview-day-card-title 深色覆盖 */
+    font-size: 16px;
+    font-weight: 700;
+    text-shadow: 0 1px 4px rgba(0,0,0,.75), 0 2px 8px rgba(0,0,0,.45);  /* 双层阴影，亮图上也清晰 */
+    overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  }
+  .overview-day-card-body {
+    padding: 8px 12px 10px;
   }
   .overview-day-card:hover {
     transform: translateY(-4px);
@@ -1016,9 +1084,9 @@
   }
   .overview-day-card-desc {
     font-size: 12px;
-    color: #636e72;
-    margin-bottom: 8px;
-    line-height: 1.5;
+    color: #4a5568;   /* 加深，避免灰蒙蒙看不清 */
+    margin-bottom: 4px;
+    line-height: 1.45;
   }
   .overview-day-card-tags {
     display: flex;
@@ -1026,11 +1094,68 @@
     flex-wrap: wrap;
     margin-bottom: 12px;
   }
+  /* 底部信息行：行程点数量 + 查看详情按钮合并为一行 */
+  .overview-day-card-foot {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 6px;
+    margin-top: 6px;
+    flex-wrap: nowrap;
+  }
   .ov-tag {
     font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 12px;
+    padding: 2px 8px;
+    border-radius: 10px;
     font-weight: 600;
+    white-space: nowrap;
+    font-variant-numeric: tabular-nums;  /* 数字等宽，避免 3/38 宽度差异撑大 */
+  }
+  /* 总览"旅途提示"按钮（stat 第3项）：完全复用 .overview-stat-item 卡片样式（浅色背景+深色字），仅保留可点击 */
+  .overview-stat-tip { cursor: pointer; }
+  .overview-stat-tip:hover { transform: translateY(-3px); box-shadow: 0 6px 20px rgba(0,0,0,0.08); }
+  .overview-stat-tip .overview-stat-num {
+    font-size: 24px;
+    color: var(--accent);
+    font-family: 'Noto Serif SC', serif, 'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji';
+    font-weight: 700;
+    margin-bottom: 3px;
+    line-height: 1.2;
+  }
+  /* 详情页 DAY 标题行：标题 + 旅途提示按钮 */
+  .day-title-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+  .day-trip-tip-btn {
+    padding: 4px 12px;
+    background: #fff;
+    color: #667eea;
+    border: 1px solid #667eea;
+    border-radius: 14px;
+    font-size: 11px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: all .15s;
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    white-space: nowrap;
+  }
+  .day-trip-tip-btn:hover { background: #667eea; color: #fff; box-shadow: 0 2px 8px rgba(102,126,234,.3); }
+  /* 总览"旅行概况"卡片：数据驱动自动生成的行程总结（保留类名兼容旧调用，已改用弹窗可后续删除） */
+  .overview-trip-summary {
+    margin: 10px 4px 2px;
+    padding: 10px 14px;
+    background: linear-gradient(135deg, #fdf6ec, #fff7ed);
+    border: 1px solid #fbd38d;
+    border-radius: 12px;
+    font-size: 13px;
+    line-height: 1.9;
+    color: #5a4a2f;
   }
   .overview-day-card-pois {
     max-height: 120px;
@@ -1053,8 +1178,10 @@
     border-bottom: none;
   }
   .overview-day-go {
-    width: 100%;
-    padding: 8px;
+    width: auto;
+    padding: 5px 12px;
+    flex-shrink: 0;
+    white-space: nowrap;
     color: #fff;
     border: none;
     border-radius: 8px;
@@ -1066,6 +1193,29 @@
   .overview-day-go:hover {
     opacity: 0.9;
   }
+
+  /* ===== Day 编辑模态框：封面预览 ===== */
+  .day-edit-cover-preview {
+    width: 100%;
+    height: 160px;
+    border-radius: 12px;
+    background: #f7fafc;
+    border: 2px dashed #cbd5e1;
+    cursor: pointer;
+    overflow: hidden;
+    display: flex; align-items: center; justify-content: center;
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
+    transition: border-color .2s;
+  }
+  .day-edit-cover-preview:hover { border-color: #667eea; }
+  .day-edit-cover-placeholder {
+    display: flex; flex-direction: column; align-items: center; gap: 8px;
+    color: #a0aec0;
+  }
+  .day-edit-cover-placeholder .icon { font-size: 36px; }
+  .day-edit-cover-placeholder span { font-size: 13px; }
   .overview-tab {
     background: linear-gradient(135deg, #667eea, #764ba2) !important;
     color: #fff !important;
@@ -1092,7 +1242,102 @@
 
   @media (max-width: 768px) {
     .overview-day-cards { grid-template-columns: 1fr; }
-    .overview-stats { grid-template-columns: repeat(2, 1fr); }
+    .overview-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; }  /* 3个图标一排 */
+    .overview-stat-item { padding: 10px 4px; }
+
+    /* ===== 手机端：卡片为主，地图按钮弹出 ===== */
+    .main-container { flex-direction: column; height: auto; min-height: 0; flex: 1 1 auto; position: relative; }
+    /* 时间线卡片占满整个手机屏宽 */
+    .timeline-panel {
+      flex: 1 1 100%;
+      width: 100%;
+      padding: 12px 10px 92px;
+      min-height: 0;
+      -webkit-overflow-scrolling: touch;
+    }
+    /* 地图默认隐藏，点击按钮后在 main-container 内覆盖（不遮挡顶部 hero/tabs） */
+    .map-panel {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      z-index: 950;
+      display: none;
+      background: #f0f2f5;
+    }
+    .map-panel.map-open { display: block; }
+    #mapContainer { height: 100%; min-height: 0; width: 100%; }
+
+    /* 全屏地图顶部返回条（仅在移动端全屏地图时显示） */
+    .map-panel.map-open .mobile-map-back {
+      position: absolute;
+      top: calc(10px + env(safe-area-inset-top, 0px));
+      left: 10px;
+      width: 40px; height: 40px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.95);
+      box-shadow: 0 2px 12px rgba(0,0,0,.18);
+      border: none;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 200;
+      color: #2d3748;
+    }
+    .mobile-map-back .icon { font-size: 20px; }
+    .mobile-map-back:active { transform: scale(.92); }
+
+    /* 悬浮地图按钮：胶囊样式，避开安全区 */
+    .mobile-map-fab {
+      position: fixed;
+      right: 14px;
+      bottom: 20px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0 18px;
+      height: 48px;
+      border-radius: 24px;
+      border: none;
+      background: linear-gradient(135deg,#667eea,#764ba2);
+      color: #fff;
+      font-size: 14px;
+      font-weight: 500;
+      box-shadow: 0 6px 20px rgba(102,126,234,.45);
+      cursor: pointer;
+      z-index: 960;
+      transition: transform .2s, box-shadow .2s;
+      font-family: inherit;
+    }
+    .mobile-map-fab .icon { font-size: 18px; }
+    .mobile-map-fab:active { transform: scale(.94); box-shadow: 0 3px 12px rgba(102,126,234,.4); }
+
+    /* 地图图例在手机端更紧凑，避免遮挡 */
+    .map-legend { bottom: 12px; left: 10px; padding: 8px 10px; }
+    .map-controls { top: calc(10px + env(safe-area-inset-top, 0px)); right: 10px; }
+
+    /* ===== 手机端视觉美化 ===== */
+    /* POI 卡片：更大圆角、柔和阴影、统一留白 */
+    .poi-card { height: 168px; border-radius: 14px; border-color: rgba(226,232,240,.9); box-shadow: 0 2px 10px rgba(26,32,44,.05); }
+    .poi-card::before { left: -13px; top: 12px; width: 9px; height: 9px; }
+    .poi-card:hover, .poi-card.active { transform: translateY(-2px); box-shadow: 0 8px 22px rgba(26,32,44,.14); }
+    /* 卡片顶部信息条：更通透的毛玻璃 */
+    .poi-top-bar {
+      background: linear-gradient(to bottom, rgba(0,0,0,.55), rgba(0,0,0,.12));
+      backdrop-filter: blur(2px); -webkit-backdrop-filter: blur(2px);
+    }
+    .poi-name { font-size: 12px; font-weight: 600; }
+    .poi-time-pill { font-size: 9px; padding: 2px 7px; }
+    /* 当日标题：更清晰的分区 */
+    .day-header { margin-bottom: 12px; padding: 2px 4px; }
+    .day-title { font-size: 19px; letter-spacing: .5px; }
+    .day-desc { font-size: 12.5px; line-height: 1.55; }
+    /* tabs：胶囊风格 */
+    .tabs { padding: 6px 6px; gap: 6px; border-radius: 12px; margin: 8px 10px 0; box-shadow: 0 2px 10px rgba(0,0,0,.05); }
+    .tab { padding: 8px 14px; border-radius: 9px; }
+    .tab.active { background: linear-gradient(135deg,#667eea,#764ba2); color: #fff; border-radius: 9px; }
+    .tab.active::after { display: none; }
+    /* hero：顶部圆角收窄，信息更紧凑 */
+    .hero { border-radius: 0 0 18px 18px; }
+    /* 悬浮按钮渐入动画 */
+    .mobile-map-fab { animation: fabIn .45s ease backwards; }
+    @keyframes fabIn { from { opacity: 0; transform: translateY(16px) scale(.9); } to { opacity: 1; transform: translateY(0) scale(1); } }
   }
 </style>
 </head>
@@ -1125,12 +1370,13 @@
   <symbol id="icon-bulb" viewBox="0 0 24 24"><path d="M9 21c0 .55.45 1 1 1h4c.55 0 1-.45 1-1v-1H9v1zm3-19C8.14 2 5 5.14 5 9c0 2.38 1.19 4.47 3 5.74V17c0 .55.45 1 1 1h6c.55 0 1-.45 1-1v-2.26c1.81-1.27 3-3.36 3-5.74 0-3.86-3.14-7-7-7z"/></symbol>
   <symbol id="icon-save" viewBox="0 0 24 24"><path d="M17 3H5c-1.11 0-2 .9-2 2v14c0 1.1.89 2 2 2h14c1.1 0 2-.9 2-2V7l-4-4zm-5 16c-1.66 0-3-1.34-3-3s1.34-3 3-3 3 1.34 3 3-1.34 3-3 3zm3-10H5V5h10v4z"/></symbol>
   <symbol id="icon-clipboard" viewBox="0 0 24 24"><path d="M19 3h-4.18C14.4 1.84 13.3 1 12 1c-1.3 0-2.4.84-2.82 2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-7 0c.55 0 1 .45 1 1s-.45 1-1 1-1-.45-1-1 .45-1 1-1zm2 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z"/></symbol>
+  <symbol id="icon-image" viewBox="0 0 24 24"><path d="M21 19V5c0-1.1-.9-2-2-2H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2zM8.5 13.5l2.5 3.01L14.5 12l4.5 6H5l3.5-4.5z"/></symbol>
 </svg>
 
-<div class="hero" id="heroSection" style="visibility:hidden;">
-  <div class="hero-content">
-    <div class="hero-left">
-      <h1 id="tripTitle">MiletoPuzhehei</h1>
+  <div class="hero">
+    <div class="hero-content">
+      <div class="hero-left">
+        <h1 id="tripTitle">MiletoPuzhehei</h1>
       <div class="subtitle" id="tripSubtitle"></div>
     </div>
     <div class="hero-badges">
@@ -1159,11 +1405,13 @@
 
 <div class="main-container">
   <div class="timeline-panel" id="timelinePanel"></div>
-  <div class="map-panel">
+  <div class="map-panel" id="mapPanel">
+    <div class="mobile-map-back" id="mobileMapBack" title="返回行程列表">
+      <svg class="icon"><use xlink:href="#icon-close"/></svg>
+    </div>
     <div id="mapContainer"></div>
     <div class="route-loading" id="routeLoading"><div class="spinner"></div><span>正在规划真实驾车路线...</span></div>
     <div class="map-legend">
-      <div class="legend-title">POI 类型</div>
       <div class="legend-items">
         <div class="legend-item"><div class="legend-dot" style="background:var(--scenic)"></div>景点</div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--food)"></div>美食</div>
@@ -1172,20 +1420,20 @@
         <div class="legend-item"><div class="legend-dot" style="background:var(--destination)"></div>目的地</div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--service)"></div>服务区</div>
         <div class="legend-item"><div class="legend-dot" style="background:var(--hotel)"></div>住宿</div>
-        <div class="legend-item"><div class="legend-dot" style="background:var(--accent);border:2px solid #fff;box-shadow:0 0 0 1px var(--accent)"></div>起点</div>
-      </div>
-      <div class="legend-title" style="margin-top:8px;">路线</div>
-      <div class="legend-items">
-        <div class="legend-item"><div class="legend-dot" style="background:#00b894"></div>驾车路线</div>
-        <div class="legend-item"><div class="legend-dot" style="background:#74b9ff;opacity:0.6"></div>无道路</div>
       </div>
     </div>
     <div class="map-controls">
-      <button class="map-ctrl-btn" id="addPOIBtn" title="添加POI" style="display:none">+</button>
+      <button class="map-ctrl-btn" id="addPOIBtn" title="添加地点" style="display:none">+</button>
       <button class="map-ctrl-btn" id="fitViewBtn" title="适配视图">⤢</button>
     </div>
   </div>
 </div>
+
+<!-- 移动端悬浮地图按钮 -->
+<button class="mobile-map-fab" id="mobileMapFab" title="查看地图">
+  <svg class="icon"><use xlink:href="#icon-map"/></svg>
+  <span>地图</span>
+</button>
 
 <!-- POI 详情弹窗 -->
 <div class="detail-modal" id="detailModal">
@@ -1201,6 +1449,40 @@
       <div class="modal-detail-actions">
         <a class="btn-primary" id="modalNavBtn" style="text-decoration:none;text-align:center;"><svg class="icon" style="font-size:16px;margin-right:4px;"><use xlink:href="#icon-navigate"/></svg>导航到此地</a>
       </div>
+    </div>
+  </div>
+</div>
+
+<!-- Day 编辑弹窗（总览卡片点编辑按钮触发） -->
+<div class="edit-modal" id="dayEditModal">
+  <div class="edit-form" style="max-width:480px;">
+    <h2><svg class="icon" style="font-size:22px;margin-right:8px;vertical-align:-0.2em;"><use xlink:href="#icon-edit"/></svg>编辑 DAY <span id="dayEditNum"></span></h2>
+    <div class="form-group">
+      <label>封面图片（点击图片或下方按钮上传，建议宽高比 16:9）</label>
+      <div id="dayEditCoverPreview" class="day-edit-cover-preview" onclick="document.getElementById('dayEditCoverFile').click()">
+        <div class="day-edit-cover-placeholder">
+          <svg class="icon"><use xlink:href="#icon-image"/></svg>
+          <span>点击上传封面</span>
+        </div>
+      </div>
+      <input type="file" id="dayEditCoverFile" accept="image/*" style="display:none;">
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button type="button" class="btn-secondary" style="flex:0 0 auto;" onclick="document.getElementById('dayEditCoverFile').click()">选择图片</button>
+        <button type="button" class="btn-secondary" id="dayEditUseFirstPoi" style="flex:0 0 auto;" title="使用第一天第一个地点的图片作为封面">使用地点图片</button>
+        <button type="button" class="btn-danger" id="dayEditRemoveCover" style="flex:0 0 auto;">移除封面</button>
+      </div>
+    </div>
+    <div class="form-group">
+      <label>标题</label>
+      <input type="text" id="dayEditTitle" placeholder="例如：稻城 · 蓝色星球">
+    </div>
+    <div class="form-group">
+      <label>描述（支持多行）</label>
+      <textarea id="dayEditDesc" placeholder="例如：翻越折多山，抵达蓝色星球稻城亚丁" rows="3"></textarea>
+    </div>
+    <div class="form-actions">
+      <button class="btn-secondary" onclick="closeDayEditModal()">取消</button>
+      <button class="btn-primary" id="dayEditSaveBtn">保存</button>
     </div>
   </div>
 </div>
@@ -1230,7 +1512,7 @@
           <option value="destination">目的地</option>
           <option value="service">服务区</option>
           <option value="hotel">住宿</option>
-        </select>
+        </select>          
       </div>
       <div class="form-group">
         <label>时间</label>
@@ -1264,8 +1546,7 @@
         </div>
         <div id="editImgPreview" style="margin-top:8px;display:none;"><img src="" id="editImgPreviewEl" style="width:100%;max-height:160px;object-fit:cover;border-radius:8px;"></div>
         <input type="file" id="editImgFile" accept="image/*" style="margin-top:8px">
-      </div>
-      <div class="form-actions">
+
         <button type="button" class="btn-secondary" onclick="closeEditModal()">取消</button>
         <button type="submit" class="btn-primary">保存</button>
       </div>
@@ -1276,10 +1557,10 @@
 <!-- 花销明细弹窗 -->
 <div class="expense-modal" id="expenseModal">
   <div class="modal-content">
+    <button class="btn-secondary" style="position:absolute;right:16px;top:16px;z-index:10;padding:8px 16px;" onclick="closeExpenseModal()">关闭</button>
     <div class="modal-body">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <h2 class="modal-title" style="margin:0;"><svg class="icon"><use xlink:href="#icon-money"/></svg>花销明细</h2>
-        <button class="btn-secondary" style="flex:none;padding:8px 16px;" onclick="closeExpenseModal()">关闭</button>
       </div>
       <div class="expense-summary">
         <div class="exp-sum-item"><div class="exp-sum-num" id="expSumBudget">0</div><div class="exp-sum-label">团费</div></div>
@@ -1315,7 +1596,7 @@
         <select id="expDay"></select>
       </div>
       <div class="form-group">
-        <label>关联 POI（可选）</label>
+        <label>关联地点（可选）</label>
         <select id="expPoi"><option value="-1">不关联</option></select>
       </div>
       <div class="form-group">
@@ -1385,19 +1666,19 @@
       <input type="file" id="tableImportFile" accept=".xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel" style="display:none;">
     </div>
     <div id="tableEditContent"></div>
-    <div class="table-edit-tip" style="margin-top:16px;padding:14px;background:linear-gradient(135deg,#f0fff4,#ebf4ff);border-radius:12px;font-size:13px;color:#555;">
-      <svg class="icon" style="font-size:14px;color:#f6ad55;vertical-align:-0.15em;margin-right:4px;"><use xlink:href="#icon-bulb"/></svg>提示：可直接在表格中修改内容，修改后点击"保存并同步"按钮即可更新主界面。地址栏输入地名后点"搜索"可自动获取经纬度、海拔、与上一站的驾车时间/里程/过路费。<br>导出的 Excel 文件可在 Microsoft Excel / WPS / 金山表格中编辑，类型字段可填中文（景点/美食/购物/出发地/目的地/服务区/住宿）。
+    <div class="table-edit-tip" style="margin-top:8px;padding:9px 12px;background:linear-gradient(135deg,#f0fff4,#ebf4ff);border-radius:8px;font-size:12px;color:#555;line-height:1.5;">
+      <svg class="icon" style="font-size:13px;color:#f6ad55;vertical-align:-0.15em;margin-right:4px;"><use xlink:href="#icon-bulb"/></svg>提示：可直接在表格中修改内容，修改后点击"保存并同步"按钮即可更新主界面。地址栏输入地名后点"搜索"可自动获取经纬度、海拔、与上一站的驾车时间/里程/过路费。<br>导出的 Excel 文件可在 Microsoft Excel / WPS / 金山表格中编辑，类型字段可填中文（景点/美食/购物/出发地/目的地/服务区/住宿）。
     </div>
     <!-- 预算汇总面板 -->
-    <div id="budgetSummaryPanel" style="margin:12px 16px;padding:14px 18px;background:linear-gradient(135deg,#f0f9ff,#e6fffa);border:1px solid #90cdf4;border-radius:10px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;">
-        <div style="font-weight:700;font-size:15px;color:#2c5282;">💰 旅游预算汇总</div>
-        <button id="tblCalcAllRoutesBtn" style="padding:4px 10px;background:#f0f0f0;color:#666;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:11px;" title="批量重算所有路线（自动计算已可用，此按钮用于修复失败项）">🔄 重新计算所有路线</button>
+    <div id="budgetSummaryPanel" style="margin:8px 12px;padding:8px 10px;background:linear-gradient(135deg,#f0f9ff,#e6fffa);border:1px solid #90cdf4;border-radius:8px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+        <div style="font-weight:700;font-size:13px;color:#2c5282;">💰 旅游预算汇总</div>
+        <button id="tblCalcAllRoutesBtn" style="padding:3px 8px;background:#f0f0f0;color:#666;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:10px;" title="批量重算所有路线（自动计算已可用，此按钮用于修复失败项）">🔄 重新计算所有路线</button>
       </div>
-      <div id="budgetSummaryContent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;font-size:13px;"></div>
+      <div id="budgetSummaryContent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:6px;font-size:12px;"></div>
     </div>
-    <div class="table-edit-save" style="margin-top:12px;text-align:center;">
-      <button class="btn-primary" id="tableSaveBtn" style="padding:10px 32px;font-size:15px;"><svg class="icon"><use xlink:href="#icon-save"/></svg>保存并同步</button>
+    <div class="table-edit-save" style="margin-top:8px;text-align:center;">
+      <button class="btn-primary" id="tableSaveBtn" style="padding:8px 22px;font-size:14px;"><svg class="icon"><use xlink:href="#icon-save"/></svg>保存并同步</button>
     </div>
   </div>
 </div>
@@ -1469,6 +1750,16 @@
       <input type="password" id="tokenInput" placeholder="ghp_xxxxxxxxxxxxxxxxxxxx" style="width:100%;padding:10px 12px;border:1px solid #ddd;border-radius:8px;font-size:14px;box-sizing:border-box;font-family:monospace;">
       <div style="font-size:12px;color:#888;margin-top:6px;">Token 以 <code>ghp_</code> 开头，获取方式见下方说明</div>
     </div>
+    <div style="background:#eef7ff;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#2c5282;">
+      <div style="font-weight:700;margin-bottom:4px;color:#2b6cb0;">⚡ 阿里云 FC 代理（可选，国内保存加速）</div>
+      不配置时保存直连 GitHub（偶尔慢）；配置 FC 函数 URL 后，保存将经由国内 FC 转发，速度更快。<br>
+      未部署 FC 函数时请留空。
+      <input type="text" id="fcProxyInput" placeholder="https://xxxxxxxx.fc.aliyuncs.com/xxx" style="width:100%;padding:8px 10px;border:1px solid #90cdf4;border-radius:6px;font-size:12px;box-sizing:border-box;margin-top:6px;font-family:monospace;">
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn-secondary" style="flex:1;padding:6px 10px;font-size:12px;" onclick="saveFcProxy()">保存 FC 地址</button>
+        <button class="btn-secondary" style="padding:6px 10px;font-size:12px;color:#e74c3c;" onclick="removeFcProxy()">清除</button>
+      </div>
+    </div>
     <div style="background:#fff3cd;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;line-height:1.6;color:#856404;">
       <div style="font-weight:700;margin-bottom:4px;">如何获取 Token？</div>
       1. 打开 https://github.com/settings/tokens/new<br>
@@ -1484,6 +1775,17 @@
       <button class="btn-secondary" style="padding:10px 16px;color:#e74c3c;" onclick="removeTokenHandler()">删除 Token</button>
     </div>
     <div id="tokenTestResult" style="margin-top:10px;font-size:13px;display:none;"></div>
+  </div>
+</div>
+
+<!-- 旅途提示弹窗（详情页 DAY 标题按钮 + 总览旅途提示按钮共用：openTripTipModal 传入 HTML 内容） -->
+<div class="edit-modal" id="dayTripTipModal" style="display:none;">
+  <div class="modal-content" style="max-width:560px;max-height:86vh;">
+    <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #e2e8f0;">
+      <h2 style="margin:0;font-size:17px;">💡 旅途提示</h2>
+      <button class="modal-close" onclick="closeDayTripTipModal()" aria-label="关闭"><svg class="icon"><use xlink:href="#icon-close"/></svg></button>
+    </div>
+    <div id="dayTripTipModalContent" style="overflow-y:auto;max-height:calc(86vh - 60px);padding:8px 18px 18px;"></div>
   </div>
 </div>
 
@@ -1506,16 +1808,39 @@ window.__EMBEDDED_TRIP__ = "{\"tripName\":\"弥勒-普者黑·慢享之旅\",\"s
 const AMAP_KEY = 'ca3c6c32c5a26e19d5847fdc05035ea8';
 
 /* ====================== 云端同步配置（GitHub 仓库存储） ====================== */
+/* dataPath 自动推导：
+   - 文件名（去掉 .html）即行程目录名：MiletoPuzhehei.html → data/MiletoPuzhehei/trip.json
+   - 特例：index.html 为默认首页（格聂南线），通过 tripName 中文字段映射
+   - 推导后自动写入 _resolvedDataPath，供迁移检测使用
+*/
+function deriveDataPath() {
+  try {
+    var name = (window.location.pathname || '').split('/').pop() || '';
+    name = decodeURIComponent(name).replace(/\.html?$/i, '').trim();
+    if (!name || name === 'index' || name === 'default') {
+      return 'data/格聂南线/trip.json';   // 默认首页映射
+    }
+    return 'data/' + name + '/trip.json';
+  } catch(e) {
+    return 'data/格聂南线/trip.json';
+  }
+}
+
 const GITHUB_CONFIG = {
   owner: 'yang6245',
   repo: 'travel-planner',
   branch: 'main',
-  dataPath: 'data/MiletoPuzhehei/trip.json',  // 行程数据在仓库中的存储路径
   apiBase: 'https://api.github.com/repos',
   // raw 地址：Public 仓库无需 Token 即可读取（只读模式）
   rawBase: 'https://raw.githubusercontent.com',
   // jsDelivr CDN：国内访问速度快，作为只读模式的首选源
   cdnBase: 'https://cdn.jsdelivr.net/gh',
+  // 阿里云 FC 代理（可选）：配置后"保存"走 FC 转发，国内写入加速；未配置则直连 GitHub
+  // 保存到 localStorage: fc_proxy_url。轮询/读取仍走 CDN，不受影响。
+  getFcProxyUrl: function() { try { return localStorage.getItem('fc_proxy_url') || ''; } catch(e) { return ''; } },
+  setFcProxyUrl: function(u) { try { localStorage.setItem('fc_proxy_url', u || ''); } catch(e) {} },
+  hasFcProxy: function() { return !!this.getFcProxyUrl(); },
+  get dataPath() { return deriveDataPath(); },
   // Token 存储在 localStorage，每个设备只需输入一次
   getToken: function() { try { return localStorage.getItem('gh_token') || ''; } catch(e) { return ''; } },
   setToken: function(t) { try { localStorage.setItem('gh_token', t); } catch(e) {} },
@@ -1523,13 +1848,11 @@ const GITHUB_CONFIG = {
   hasToken: function() { return !!this.getToken(); },
   // 获取 raw 只读地址（无需 Token）
   getRawUrl: function() {
-    var encodedPath = this.dataPath.split('/').map(encodeURIComponent).join('/');
-    return this.rawBase + '/' + this.owner + '/' + this.repo + '/' + this.branch + '/' + encodedPath + '?t=' + Date.now();
+    return this.rawBase + '/' + this.owner + '/' + this.repo + '/' + this.branch + '/' + this.dataPath + '?t=' + Date.now();
   },
   // 获取 jsDelivr CDN 地址（国内访问快，解决 raw.githubusercontent.com 慢的问题）
   getCdnUrl: function() {
-    var encodedPath = this.dataPath.split('/').map(encodeURIComponent).join('/');
-    return this.cdnBase + '/' + this.owner + '/' + this.repo + '@' + this.branch + '/' + encodedPath + '?t=' + Date.now();
+    return this.cdnBase + '/' + this.owner + '/' + this.repo + '@' + this.branch + '/' + this.dataPath + '?t=' + Date.now();
   }
 };
 // 带超时的 fetch（防止网络慢导致一直卡在"同步中"）
@@ -1561,6 +1884,43 @@ const typeLabels = { scenic:'景点', food:'美食', shop:'购物', origin:'出�
 const typeColors = { scenic:'#00d4aa', food:'#ff9f43', shop:'#ff6b81', origin:'#4facfe', destination:'#f093fb', service:'#f6ad55', hotel:'#9f7aea' };
 /* 不显示天气的 POI 类型 */
 const noWeatherTypes = ['food','shop'];
+
+/* ===== 天气显示判定 v2：美食/购物 10km 内无地址类 POI 时也显示天气（避免区域天气缺失）===== */
+
+/* 两点间球面距离（km），Haversine 公式 */
+function distanceKm(lat1, lng1, lat2, lng2) {
+  var R = 6371;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+          Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return 2 * R * Math.asin(Math.sqrt(a));
+}
+
+/* 该坐标 10km 范围内是否存在"地址类"POI（能显示天气的类型：非美食/购物） */
+function hasNearbyWeatherPOI(lat, lng) {
+  if (!trip || !trip.days) return false;
+  var found = false;
+  trip.days.some(function(d) {
+    return (d.pois || []).some(function(p) {
+      if (!p.lng || !p.lat) return false;
+      if (noWeatherTypes.indexOf(p.type) !== -1) return false;  /* 只看地址类 */
+      return distanceKm(lat, lng, p.lat, p.lng) <= 10;
+    });
+  });
+  return found;
+}
+
+/* 该 POI 是否需要显示天气：
+   1. 地址类（非 food/shop）→ 始终需要
+   2. food/shop → 仅当 10km 内无地址类 POI 时显示（附近已有天气则不重复） */
+function needWeatherForPOI(poi) {
+  if (!poi.lng || !poi.lat) return false;
+  if (noWeatherTypes.indexOf(poi.type) === -1) return true;
+  return !hasNearbyWeatherPOI(poi.lat, poi.lng);
+}
+
 /* 天气数据缓存：adcode -> { city, forecasts:[{date,week,dayWeather,dayTemp,nightTemp,dayWind}...] } */
 var weatherCache = {};
 /* adcode 反查缓存：lng+lat -> adcode */
@@ -1669,6 +2029,8 @@ let currentInfoWindow = null;
 let routeTimer = null;
 let editingExpenseId = null;
 let selectedCategory = '餐食';
+let mobileMapOpen = false;        // 移动端全屏地图是否打开
+let mobileMapLazyInit = false;    // 移动端地图懒加载标记（首次点开才初始化）
 
 /* ====================== 存储 ====================== */
 function storageKey() {
@@ -1684,6 +2046,32 @@ function githubHeaders(extra) {
     'Content-Type': 'application/json'
   };
   return Object.assign(h, extra || {});
+}
+
+/* ===== Token 管理界面 ===== */
+function openTokenModal() {
+  var modal = document.getElementById('tokenModal');
+  var input = document.getElementById('tokenInput');
+  input.value = GITHUB_CONFIG.getToken() || '';
+  var fcInput = document.getElementById('fcProxyInput');
+  if (fcInput) fcInput.value = GITHUB_CONFIG.getFcProxyUrl() || '';
+  document.getElementById('tokenTestResult').style.display = 'none';
+  modal.style.display = 'flex';
+}
+function closeTokenModal() {
+  document.getElementById('tokenModal').style.display = 'none';
+}
+/* 保存/清除 FC 代理地址 */
+function saveFcProxy() {
+  var url = document.getElementById('fcProxyInput').value.trim();
+  if (url && !/^https:\/\//.test(url)) { showToast('FC 地址需以 https:// 开头'); return; }
+  GITHUB_CONFIG.setFcProxyUrl(url);
+  showToast(url ? '✅ FC 代理地址已保存' : 'FC 代理地址已清除');
+}
+function removeFcProxy() {
+  GITHUB_CONFIG.setFcProxyUrl('');
+  document.getElementById('fcProxyInput').value = '';
+  showToast('FC 代理地址已清除');
 }
 
 /* ===== Token 管理界面 ===== */
@@ -1760,36 +2148,18 @@ function removeTokenHandler() {
   setTimeout(function() { location.reload(); }, 1500);
 }
 
-// 只读加载：优先用 jsDelivr CDN（国内快），失败回退 raw.githubusercontent.com
+// 只读加载：优先 CDN（jsDelivr 国内偶尔可达），失败再尝试 raw 兜底（国内几乎不可达）
 function cloudLoadReadOnly() {
-  // 优先 raw（实时无缓存），失败再走 GitHub API，最后 CDN
-  return fetchWithTimeout(GITHUB_CONFIG.getRawUrl(), {}, 30000)
+  // 超时缩短：CDN 4s / raw 4s，避免白等几秒（之前 30s+15s 用户体感极差）
+  return fetchWithTimeout(GITHUB_CONFIG.getCdnUrl(), {}, 4000)
     .then(function(r) {
-      if (!r.ok) throw new Error('raw 读取失败 ' + r.status);
+      if (!r.ok) throw new Error('CDN 读取失败 ' + r.status);
       return r.json();
     })
-    .catch(function(rawErr) {
-      console.warn('raw 加载失败，尝试 GitHub API:', rawErr.message);
-      // GitHub API 对中文路径支持好（用 encodeURIComponent 编码）
-      var apiUrl = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
-        '/contents/' + encodeURIComponent(GITHUB_CONFIG.dataPath) + '?ref=' + GITHUB_CONFIG.branch + '&t=' + Date.now();
-      return fetchWithTimeout(apiUrl, {}, 15000).then(function(r) {
-        if (!r.ok) throw new Error('GitHub API 读取失败 ' + r.status);
-        return r.json();
-      }).then(function(data) {
-        if (data.content) {
-          // base64 解码
-          var b64 = data.content.replace(/\n/g, '');
-          var json = decodeURIComponent(escape(atob(b64)));
-          return JSON.parse(json);
-        }
-        throw new Error('GitHub API 返回数据为空');
-      });
-    })
-    .catch(function(apiErr) {
-      console.warn('GitHub API 加载失败，尝试 CDN 源:', apiErr.message);
-      return fetchWithTimeout(GITHUB_CONFIG.getCdnUrl(), {}, 15000).then(function(r) {
-        if (!r.ok) throw new Error('CDN 读取失败 ' + r.status);
+    .catch(function(cdnErr) {
+      console.warn('CDN 加载失败，尝试 raw 源:', cdnErr.message);
+      return fetchWithTimeout(GITHUB_CONFIG.getRawUrl(), {}, 4000).then(function(r) {
+        if (!r.ok) throw new Error('raw 读取失败 ' + r.status);
         return r.json();
       });
     })
@@ -1800,52 +2170,457 @@ function cloudLoadReadOnly() {
 }
 
 // 从 GitHub 仓库加载行程数据（单文件存储，无需分片）
+// 配置 FC 代理时：浏览器→FC→GitHub API 读取（FC 在阿里云，国内直连稳定，解决直连 GitHub API 慢/失败）
 function cloudLoad() {
+  var fcUrl = GITHUB_CONFIG.getFcProxyUrl();
+  if (fcUrl) {
+    return loadViaFcProxy(fcUrl);
+  }
   var url = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
             '/contents/' + encodeURIComponent(GITHUB_CONFIG.dataPath) + '?ref=' + GITHUB_CONFIG.branch +
             '&t=' + Date.now(); // 时间戳防止缓存
-  return fetchWithTimeout(url, { headers: githubHeaders() }, 10000).then(function(r) {
+  return fetchWithTimeout(url, { headers: githubHeaders() }, 5000).then(function(r) {
     if (r.status === 404) throw new Error('云端数据不存在（首次使用请先保存一次）');
     if (!r.ok) throw new Error('GitHub API 返回 ' + r.status);
     return r.json();
   }).then(function(data) {
     githubFileSha = data.sha || ''; // 保存 SHA，更新时需要
+    // GitHub contents API 对 >1MB 文件不返回 content 字段（避免给技术错"Unexpected end of JSON input"）
+    if (!data.content) {
+      var sizeMB = data.size ? (data.size / 1048576).toFixed(1) : '未知';
+      throw new Error('云端文件过大（' + sizeMB + 'MB）超过 GitHub API 1MB 读取限制。请进入编辑模式→保存一次以自动压缩图片（通常能缩到 2MB 以内）');
+    }
     var content = base64ToUtf8(data.content.replace(/\n/g, ''));
-    var tripData = JSON.parse(content);
+    var tripData;
+    try { tripData = JSON.parse(content); }
+    catch (e) { throw new Error('云端数据 JSON 解析失败：' + e.message + '（可能文件已损坏）'); }
+    cloudLastUpdate = tripData._updatedAt || 0;
+    return tripData;
+  });
+}
+
+/* 经阿里云 FC 代理读取云端行程数据（复用 fc_proxy.py 的 action=read，返回 sha + base64 content） */
+function loadViaFcProxy(fcUrl) {
+  return fetchWithTimeout(fcUrl, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'X-GitHub-Token': GITHUB_CONFIG.getToken()
+    },
+    body: JSON.stringify({
+      action: 'read',
+      owner: GITHUB_CONFIG.owner,
+      repo: GITHUB_CONFIG.repo,
+      branch: GITHUB_CONFIG.branch,
+      path: GITHUB_CONFIG.dataPath
+    })
+  }, 8000).then(function(r) {
+    if (r.status === 404) throw new Error('云端数据不存在（首次使用请先保存一次）');
+    if (!r.ok) throw new Error('FC 代理返回 ' + r.status);
+    return r.json();
+  }).then(function(resp) {
+    if (resp && resp.error) throw new Error(resp.error);
+    githubFileSha = (resp && resp.sha) || '';
+    if (!resp || !resp.content) {
+      var sizeMB = (resp && resp.size) ? (resp.size / 1048576).toFixed(1) : '未知';
+      throw new Error('云端文件过大（' + sizeMB + 'MB）超过 GitHub API 1MB 读取限制。请进入编辑模式→保存一次以自动压缩图片（通常能缩到 2MB 以内）');
+    }
+    var content = base64ToUtf8(resp.content.replace(/\n/g, ''));
+    var tripData;
+    try { tripData = JSON.parse(content); }
+    catch (e) { throw new Error('云端数据 JSON 解析失败：' + e.message + '（可能文件已损坏）'); }
     cloudLastUpdate = tripData._updatedAt || 0;
     return tripData;
   });
 }
 
 // 保存行程数据到 GitHub 仓库
+/* ====================== 图片上传自动压缩（统一入口） ====================== */
+/* 目标：上传图片自动压缩为 JPEG，控制云端文件体积，同时保证手机/电脑展示质量。
+   参数：file（File 对象）、onDone(压缩后的 base64)、onError(错误回调)
+   策略：
+   - 最大宽度 1280px（手机 2x ≈ 750~900px 物理像素，电脑 1x ≈ 1280px，足够清晰）
+   - JPEG 质量 0.82（视觉无损，体积约为原始 10%~20%）
+   - PNG 透明 → 白底合成（避免黑色背景）
+*/
+function compressImageFile(file, onDone, onError) {
+  if (!file || !file.type || file.type.indexOf('image/') !== 0) {
+    onError('请选择图片文件');
+    return;
+  }
+  // 小图片（< 80KB 且已非超大尺寸）直接原样返回，避免无损图被转 JPEG 降低质量
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      try {
+        var MAX_W = 1280;
+        var QUALITY = 0.82;
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var isSmall = file.size <= 80 * 1024 && w <= MAX_W;
+        if (isSmall) {
+          // 保留原始（含 PNG 透明，小图不转格式）
+          onDone(e.target.result);
+          return;
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        // 若为 PNG（可能透明），先铺白底
+        if (file.type === 'image/png' || file.type === 'image/webp') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // 等比缩放到最大宽度
+        if (w > MAX_W) {
+          var scale = MAX_W / w;
+          var cw = Math.round(w * scale);
+          var ch = Math.round(h * scale);
+          var c2 = document.createElement('canvas');
+          c2.width = cw; c2.height = ch;
+          var ctx2 = c2.getContext('2d');
+          if (file.type === 'image/png' || file.type === 'image/webp') {
+            ctx2.fillStyle = '#ffffff';
+            ctx2.fillRect(0, 0, cw, ch);
+          }
+          ctx2.drawImage(canvas, 0, 0, cw, ch);
+          canvas = c2;
+        }
+        var outType = (file.type === 'image/png' || file.type === 'image/webp') ? 'image/jpeg' : file.type;
+        var b64 = canvas.toDataURL(outType, QUALITY);
+        // 若压缩后反而更大（罕见），回退原图
+        if (b64.length > e.target.result.length) b64 = e.target.result;
+        onDone(b64);
+      } catch(err) {
+        onError(String(err));
+      }
+    };
+    img.onerror = function() { onError('图片解析失败'); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function() { onError('文件读取失败'); };
+  reader.readAsDataURL(file);
+}
+
 function cloudSave(tripData) {
   if (!GITHUB_CONFIG.hasToken()) {
     updateSyncStatus('offline');
     return Promise.reject(new Error('未配置 GitHub Token'));
   }
+  // 阿里云 FC 代理模式：配置了 fc_proxy_url 时，把保存请求转发给 FC 函数（由 FC 转发 GitHub API）
+  // 好处：浏览器→FC 国内直连，避免 GitHub API 直连慢；Token 通过 header 传给 FC，不暴露在 URL
+  var fcUrl = GITHUB_CONFIG.getFcProxyUrl();
+  if (fcUrl) {
+    return saveViaFcProxy(fcUrl, tripData);
+  }
   var data = JSON.parse(JSON.stringify(tripData));
   data._updatedAt = Date.now();
-  var content = utf8ToBase64(JSON.stringify(data));
-  var body = {
-    message: '更新行程数据 ' + new Date().toLocaleString('zh-CN'),
-    content: content,
-    branch: GITHUB_CONFIG.branch
-  };
-  if (githubFileSha) body.sha = githubFileSha; // 更新已有文件需要传入 sha
-  var url = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
-            '/contents/' + encodeURIComponent(GITHUB_CONFIG.dataPath);
-  return fetch(url, {
-    method: 'PUT',
-    headers: githubHeaders(),
-    body: JSON.stringify(body)
-  }).then(function(r) {
-    if (!r.ok) throw new Error('GitHub API 返回 ' + r.status);
-    return r.json();
-  }).then(function(resp) {
-    githubFileSha = resp.content ? resp.content.sha : '';
-    cloudLastUpdate = data._updatedAt;
-    updateSyncStatus('synced');
+  // 保存前兜底：异步压缩仍超过阈值的 base64 内嵌图片（旧数据/导入数据可能有大图），保证云端文件可控
+  var MAX_B64_LEN = 300 * 1024;   // base64 约 300KB ≈ 原始 220KB 的图（1280px JPEG 通常远小于此）
+  var pending = [];
+  (data.days || []).forEach(function(d) {
+    (d.pois || []).forEach(function(p) {
+      if (p.img && p.img.indexOf('data:image') === 0 && p.img.length > MAX_B64_LEN) {
+        pending.push(downscaleBase64Image(p.img, 1280, 0.82).then(function(r) { p.img = r; }));
+      }
+    });
+    if (d.cover && d.cover.indexOf('data:image') === 0 && d.cover.length > MAX_B64_LEN) {
+      pending.push(downscaleBase64Image(d.cover, 1280, 0.82).then(function(r) { d.cover = r; }));
+    }
   });
+  // 全部压缩完成后统一推送云端
+  return Promise.all(pending).then(function() {
+    if (pending.length > 0) {
+      try { localStorage.setItem(storageKey(), JSON.stringify(data)); } catch(e) {}
+      console.log('云端保存前已自动压缩 ' + pending.length + ' 张超大图片');
+    }
+    var content = utf8ToBase64(JSON.stringify(data));
+    var body = {
+      message: '更新行程数据 ' + new Date().toLocaleString('zh-CN'),
+      content: content,
+      branch: GITHUB_CONFIG.branch
+    };
+    if (githubFileSha) body.sha = githubFileSha; // 更新已有文件需要传入 sha
+    var url = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
+              '/contents/' + encodeURIComponent(GITHUB_CONFIG.dataPath);
+    return fetch(url, {
+      method: 'PUT',
+      headers: githubHeaders(),
+      body: JSON.stringify(body)
+    }).then(function(r) {
+      if (!r.ok) throw new Error('GitHub API 返回 ' + r.status);
+      return r.json();
+    }).then(function(resp) {
+      githubFileSha = resp.content ? resp.content.sha : '';
+      cloudLastUpdate = data._updatedAt;
+      updateSyncStatus('synced');
+    });
+  });
+}
+
+/* ===== 阿里云 FC 代理保存：浏览器 → FC 函数 → GitHub API ===== */
+/* FC 函数负责用 Token 转发 GitHub 写请求，国内直连加速；读取仍走 CDN 不受影响 */
+function saveViaFcProxy(fcUrl, tripData) {
+  var data = JSON.parse(JSON.stringify(tripData));
+  data._updatedAt = Date.now();
+  // 复用保存前兜底压缩逻辑：先压缩超大图片再发往 FC
+  var MAX_B64_LEN = 300 * 1024;
+  var pending = [];
+  (data.days || []).forEach(function(d) {
+    (d.pois || []).forEach(function(p) {
+      if (p.img && p.img.indexOf('data:image') === 0 && p.img.length > MAX_B64_LEN) {
+        pending.push(downscaleBase64Image(p.img, 1280, 0.82).then(function(r) { p.img = r; }));
+      }
+    });
+    if (d.cover && d.cover.indexOf('data:image') === 0 && d.cover.length > MAX_B64_LEN) {
+      pending.push(downscaleBase64Image(d.cover, 1280, 0.82).then(function(r) { d.cover = r; }));
+    }
+  });
+  return Promise.all(pending).then(function() {
+    if (pending.length > 0) {
+      try { localStorage.setItem(storageKey(), JSON.stringify(data)); } catch(e) {}
+    }
+    // 请求 FC 函数：POST，携带 Token（header）、仓库信息、数据
+    return fetch(fcUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'X-GitHub-Token': GITHUB_CONFIG.getToken()
+      },
+      body: JSON.stringify({
+        action: 'save',
+        owner: GITHUB_CONFIG.owner,
+        repo: GITHUB_CONFIG.repo,
+        branch: GITHUB_CONFIG.branch,
+        path: GITHUB_CONFIG.dataPath,
+        sha: githubFileSha || '',
+        content: data
+      })
+    }).then(function(r) {
+      if (!r.ok) throw new Error('FC 代理返回 ' + r.status + '：' + (r.statusText || ''));
+      return r.json();
+    }).then(function(resp) {
+      if (resp && resp.error) throw new Error(resp.error);
+      githubFileSha = (resp && resp.sha) || githubFileSha;
+      cloudLastUpdate = data._updatedAt;
+      updateSyncStatus('synced');
+      console.log('已通过阿里云 FC 代理保存');
+    });
+  });
+}
+
+/* 保存前兜底压缩
+/* 保存前兜底压缩：对已存在的 base64 图片降采样（返回 Promise<新的 base64>） */
+function downscaleBase64Image(b64, maxW, quality) {
+  return new Promise(function(resolve) {
+    try {
+      var m = b64.match(/^data:(image\/\w+);base64,/);
+      var fmt = m ? m[1] : 'image/jpeg';
+      var raw = b64.split(',')[1];
+      var binary = atob(raw);
+      var len = binary.length;
+      var bytes = new Uint8Array(len);
+      for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+      var blob = new Blob([bytes], { type: fmt });
+      var url = URL.createObjectURL(blob);
+      var img = new Image();
+      img.onload = function() {
+        try {
+          URL.revokeObjectURL(url);
+          var w = img.naturalWidth, h = img.naturalHeight;
+          var isPng = fmt === 'image/png' || fmt === 'image/webp';
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          if (isPng) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); }
+          ctx.drawImage(img, 0, 0, w, h);
+          if (w > maxW) {
+            var scale = maxW / w;
+            var cw = Math.round(w * scale), ch = Math.round(h * scale);
+            var c2 = document.createElement('canvas');
+            c2.width = cw; c2.height = ch;
+            var ctx2 = c2.getContext('2d');
+            if (isPng) { ctx2.fillStyle = '#fff'; ctx2.fillRect(0, 0, cw, ch); }
+            ctx2.drawImage(canvas, 0, 0, cw, ch);
+            canvas = c2;
+          }
+          var out = canvas.toDataURL('image/jpeg', quality);
+          // 若压缩后反而更大，回退原图
+          resolve(out.length < b64.length ? out : b64);
+        } catch(e) { resolve(b64); }
+      };
+      img.onerror = function() { try { URL.revokeObjectURL(url); } catch(e) {} resolve(b64); };
+      img.src = url;
+    } catch(e) {
+      resolve(b64);
+    }
+  });
+}
+
+/* 保存前兜底压缩：对已存在的 base64 图片降采样（返回 Promise<新的 base64>） */
+function downscaleBase64Image(b64, maxW, quality) {
+  return new Promise(function(resolve) {
+    try {
+      var m = b64.match(/^data:(image\/\w+);base64,/);
+      var fmt = m ? m[1] : 'image/jpeg';
+      var raw = b64.split(',')[1];
+      var binary = atob(raw);
+      var len = binary.length;
+      var bytes = new Uint8Array(len);
+      for (var i = 0; i < len; i++) bytes[i] = binary.charCodeAt(i);
+      var blob = new Blob([bytes], { type: fmt });
+      var url = URL.createObjectURL(blob);
+      var img = new Image();
+      img.onload = function() {
+        try {
+          URL.revokeObjectURL(url);
+          var w = img.naturalWidth, h = img.naturalHeight;
+          var isPng = fmt === 'image/png' || fmt === 'image/webp';
+          var canvas = document.createElement('canvas');
+          canvas.width = w; canvas.height = h;
+          var ctx = canvas.getContext('2d');
+          if (isPng) { ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, w, h); }
+          ctx.drawImage(img, 0, 0, w, h);
+          if (w > maxW) {
+            var scale = maxW / w;
+            var cw = Math.round(w * scale), ch = Math.round(h * scale);
+            var c2 = document.createElement('canvas');
+            c2.width = cw; c2.height = ch;
+            var ctx2 = c2.getContext('2d');
+            if (isPng) { ctx2.fillStyle = '#fff'; ctx2.fillRect(0, 0, cw, ch); }
+            ctx2.drawImage(canvas, 0, 0, cw, ch);
+            canvas = c2;
+          }
+          var out = canvas.toDataURL('image/jpeg', quality);
+          // 若压缩后反而更大，回退原图
+          resolve(out.length < b64.length ? out : b64);
+        } catch(e) { resolve(b64); }
+      };
+      img.onerror = function() { try { URL.revokeObjectURL(url); } catch(e) {} resolve(b64); };
+      img.src = url;
+    } catch(e) {
+      resolve(b64);
+    }
+  });
+}
+
+/* ====================== 自动匹配：dataPath 推导 + 旧目录一键迁移 ====================== */
+/* 场景：dataPath 从文件名自动推导（deriveDataPath）。若新路径在云端不存在，
+   但仓库 data/ 下存在旧目录（如格聂南线/MiletoPuzhehei），自动扫描并弹窗一键迁移。 */
+var migrationShown = false;   // 防止重复弹窗
+
+// 读取仓库 data/ 目录下的所有子目录名（GitHub API）
+function listCloudDataDirs() {
+  var url = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
+            '/contents/data?ref=' + GITHUB_CONFIG.branch;
+  return fetchWithTimeout(url, { headers: githubHeaders() }, 10000)
+    .then(function(r) {
+      if (!r.ok) return [];
+      return r.json();
+    })
+    .then(function(items) {
+      if (!Array.isArray(items)) return [];
+      return items.filter(function(it) { return it.type === 'dir'; }).map(function(it) { return it.name; });
+    })
+    .catch(function() { return []; });
+}
+
+// 检查某路径在云端是否存在（用 GitHub API 探测：raw.githubusercontent.com 国内不可达，API 更稳定）
+function cloudPathExists(path) {
+  var url = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
+            '/contents/' + encodeURIComponent(path) + '?ref=' + GITHUB_CONFIG.branch + '&t=' + Date.now();
+  return fetchWithTimeout(url, { headers: githubHeaders() }, 8000)
+    .then(function(r) { return r.ok; })
+    .catch(function() { return false; });
+}
+
+// 把旧目录数据复制到新路径（GitHub API：读旧内容 → PUT 到新路径）
+function migrateDataDir(oldDir) {
+  var oldPath = 'data/' + oldDir + '/trip.json';
+  var newPath = GITHUB_CONFIG.dataPath;
+  var token = GITHUB_CONFIG.getToken();
+  if (!token) return Promise.reject(new Error('迁移需要 Token（当前未配置）'));
+
+  // Step 1: 读取旧数据（GitHub API 拿 base64 + sha）
+  var oldUrl = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
+               '/contents/' + encodeURIComponent(oldPath) + '?ref=' + GITHUB_CONFIG.branch;
+  return fetch(oldUrl, { headers: githubHeaders() })
+    .then(function(r) {
+      if (!r.ok) throw new Error('读取旧数据失败 ' + r.status);
+      return r.json();
+    })
+    .then(function(data) {
+      if (!data.content) throw new Error('旧数据内容为空');
+      // Step 2: 写入新路径
+      var body = {
+        message: 'migrate: 自动迁移数据 ' + oldDir + ' → ' + newPath,
+        content: data.content.replace(/\n/g, ''),
+        branch: GITHUB_CONFIG.branch
+      };
+      var newUrl = GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo +
+                   '/contents/' + encodeURIComponent(newPath);
+      return fetch(newUrl, {
+        method: 'PUT',
+        headers: githubHeaders(),
+        body: JSON.stringify(body)
+      });
+    })
+    .then(function(r) {
+      if (!r.ok) throw new Error('写入新路径失败 ' + r.status);
+      return r.json();
+    })
+    .then(function(resp) {
+      githubFileSha = resp.content ? resp.content.sha : '';
+      // 记录迁移标记，避免下次再弹
+      try { localStorage.setItem('migrated_' + GITHUB_CONFIG.dataPath.replace(/\//g, '_'), '1'); } catch(e) {}
+      return { oldDir: oldDir, newPath: newPath };
+    });
+}
+
+// 主入口：加载前检测是否需要迁移。返回 true 表示已处理（调用方应中止原加载流程）
+function checkAndMigrate() {
+  if (migrationShown) return false;
+  if (!GITHUB_CONFIG.hasToken()) return false;  // 无 Token 无法迁移（只读模式直接走原流程）
+
+  // 已迁移过则跳过
+  try {
+    var key = 'migrated_' + GITHUB_CONFIG.dataPath.replace(/\//g, '_');
+    if (localStorage.getItem(key)) return false;
+  } catch(e) {}
+
+  var needMigrate = false;
+  // 检测：新路径不存在 + 仓库里存在其他 data 目录
+  return cloudPathExists(GITHUB_CONFIG.dataPath).then(function(newExists) {
+    if (newExists) return false;
+    return listCloudDataDirs();
+  }).then(function(dirs) {
+    if (!dirs || !dirs.length) return false;
+    // 排除已迁移的目录
+    var candidates = dirs.filter(function(d) {
+      try { return !localStorage.getItem('migrated_' + ('data/' + d + '/trip.json').replace(/\//g, '_')); } catch(e) { return true; }
+    });
+    if (!candidates.length) return false;
+    needMigrate = true;
+    migrationShown = true;
+    // 弹窗让用户选择
+    return new Promise(function(resolve) {
+      var msg = '检测到本页面数据路径为：\n' + GITHUB_CONFIG.dataPath + '\n\n' +
+                '云端检测到以下旧数据目录：\n• ' + candidates.join('\n• ') + '\n\n' +
+                '是否将该数据迁移到当前页面路径？\n（选择"确定"复制第一项旧数据，之后可在同步设置中调整）';
+      var confirmed = window.confirm(msg);
+      if (!confirmed) { resolve(false); return; }
+      // 简化交互：默认迁移第一个候选
+      migrateDataDir(candidates[0]).then(function(res) {
+        window.alert('✅ 数据已从 ' + res.oldDir + ' 迁移到 ' + res.newPath + '，即将刷新页面');
+        resolve(true);
+      }).catch(function(err) {
+        window.alert('❌ 迁移失败：' + err.message);
+        resolve(false);
+      });
+    });
+  }).catch(function() { return false; });
 }
 
 // 更新同步状态指示器
@@ -1925,7 +2700,7 @@ function startCloudPoll() {
           renderOverviewHome();
         } else {
           renderTimeline(currentDay);
-          renderMap(currentDay);
+          ensureMobileMapRender(currentDay);
         }
         updateBadges();
         isCloudSave = false;
@@ -1937,6 +2712,22 @@ function startCloudPoll() {
 }
 
 function loadData() {
+  // 自动匹配：检测是否需要迁移旧数据（异步，不阻塞加载；迁移成功则刷新）
+  // 注意：checkAndMigrate 在无 Token/已迁移等情况下返回布尔值 false，必须用 Promise.resolve 包一层，
+  // 否则 false.then 抛 TypeError 导致整个加载流程中断（页面卡在"连接中"）
+  Promise.resolve(checkAndMigrate()).then(function(migrated) {
+    if (migrated) {
+      setTimeout(function() { location.reload(); }, 800);
+      return;
+    }
+    loadDataInternal();
+  });
+}
+
+// 实际加载逻辑（迁移检测通过后执行）
+function loadDataInternal() {
+  // 【方案 A】优先从 localStorage 缓存秒渲染（避免白等几秒）
+  var cacheLoaded = tryRenderFromCache();
   // 有 Token：可编辑模式，通过 GitHub API 加载（获取 SHA）
   if (GITHUB_CONFIG.hasToken()) {
     updateSyncStatus('syncing');
@@ -1956,6 +2747,8 @@ function loadData() {
         throw new Error('云端数据为空');
       }
     }).catch(function(err) {
+      // 【方案 A】已有缓存时云端拉取失败不阻塞，仅 toast 提示
+      if (cacheLoaded) { handleCachedCloudError(err); return; }
       console.warn('云端加载失败:', err);
       var errMsg = (err && err.message) ? err.message : '';
       var isAuthError = errMsg.indexOf('401') !== -1;
@@ -2071,6 +2864,8 @@ function loadData() {
       throw new Error('云端数据为空');
     }
   }).catch(function(err) {
+    // 【方案 A】已有缓存时云端拉取失败不阻塞，仅 toast 提示
+    if (cacheLoaded) { handleCachedCloudError(err); return; }
     console.warn('只读加载失败，使用本地数据:', err);
     if (showedEmbedded) {
       // 已用嵌入数据显示，不回退到 defaultTrip
@@ -2099,6 +2894,42 @@ function loadData() {
   });
 }
 
+/* 方案 A：尝试从 localStorage 缓存秒渲染，返回是否命中 */
+function tryRenderFromCache() {
+  try {
+    var saved = localStorage.getItem(storageKey());
+    if (saved) {
+      var cached = JSON.parse(saved);
+      if (cached && cached.days && cached.days.length > 0) {
+        trip = cached;
+        fixTripData();
+        cloudLastUpdate = trip._updatedAt || 0;
+        initTabs();
+        if (currentDay === 0) renderOverviewHome();
+        else { renderTimeline(currentDay); ensureMobileMapRender(currentDay); }
+        updateBadges();
+        initMap();
+        // 【修复】命中缓存时立即设状态为已同步/只读，避免 UI 停留在"连接中"
+        updateSyncStatus(GITHUB_CONFIG.hasToken() ? 'synced' : 'readonly');
+        return true;
+      }
+    }
+  } catch(e) { console.warn('缓存读取失败:', e); }
+  return false;
+}
+
+/* 方案 A：已有缓存时云端拉取失败的提示（不阻塞 UI） */
+function handleCachedCloudError(err) {
+  var errMsg = (err && err.message) ? err.message : '';
+  updateSyncStatus('offline');
+  if (errMsg.indexOf('超时') !== -1 || errMsg.indexOf('timeout') !== -1 ||
+      errMsg.indexOf('Failed to fetch') !== -1 || errMsg.indexOf('NetworkError') !== -1) {
+    showToast('⚠️ 云端拉取失败（已显示本地缓存）');
+  } else {
+    showToast('⚠️ 云端拉取失败：' + errMsg + '（已显示本地缓存）');
+  }
+}
+
 // 数据修复：确保每天有 startLocation
 function fixTripData() {
   var defaultStarts = [
@@ -2111,6 +2942,7 @@ function fixTripData() {
   ];
   /* 有效类型白名单，云端旧数据可能含 '文化' 等无效类型 */
   var validTypes = ['scenic','food','shop','origin','destination','service','hotel'];
+  var noAltTypesForFix = ['food','shop'];
   /* 中文类型 -> 英文映射（用于修复旧数据） */
   var typeReverse = { '景点':'scenic', '美食':'food', '购物':'shop', '出发地':'origin', '目的地':'destination', '服务区':'service', '住宿':'hotel', '文化':'scenic' };
   /* 构建默认行程海拔查找表（按 day+name 索引），用于恢复云端缺失的海拔数据 */
@@ -2156,20 +2988,45 @@ function fixTripData() {
   if (!trip.expenses) trip.expenses = [];
   if (!trip.startDate) trip.startDate = '';
 }
-function saveData() {
-  // 保存到本地
-  try { localStorage.setItem(storageKey(), JSON.stringify(trip)); } catch(e) {}
-  // 同步到云端（非云端拉取触发的保存才推送，且有 Token 才推送）
-  if (!isCloudSave && trip && trip.days && GITHUB_CONFIG.hasToken()) {
-    cloudSyncing = true;
-    updateSyncStatus('syncing');
+/* 防抖云端保存：3 秒内的多次编辑合并为一次云端推送，减少 FC 调用与 GitHub API 请求 */
+var cloudSaveTimer = null;
+function cloudSaveDebounced() {
+  if (!GITHUB_CONFIG.hasToken() || isCloudSave) return;
+  // 防抖期间也设 cloudSyncing=true，避免 startCloudPoll 触发轮询覆盖用户编辑
+  cloudSyncing = true;
+  updateSyncStatus('syncing');
+  if (cloudSaveTimer) clearTimeout(cloudSaveTimer);
+  cloudSaveTimer = setTimeout(function() {
+    cloudSaveTimer = null;
+    if (!trip || !trip.days) { cloudSyncing = false; return; }
     cloudSave(trip).then(function() {
       cloudSyncing = false;
-    }).catch(function(a) {
-      console.warn('云端同步失败:', a);
+    }).catch(function(e) {
+      console.warn('云端同步失败:', e);
       cloudSyncing = false;
       updateSyncStatus('error');
     });
+  }, 3000);
+}
+
+/* 关闭页面前立即推送待发送的云端保存（fire-and-forget；浏览器可能不等完成，本地 localStorage 兜底） */
+function flushCloudSave() {
+  if (cloudSaveTimer) {
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer = null;
+    if (trip && trip.days && GITHUB_CONFIG.hasToken() && !isCloudSave) {
+      try { cloudSave(trip); } catch(e) { console.warn('flush save 失败:', e); }
+    }
+  }
+}
+window.addEventListener('beforeunload', flushCloudSave);
+
+function saveData() {
+  // 保存到本地（立即生效）
+  try { localStorage.setItem(storageKey(), JSON.stringify(trip)); } catch(e) {}
+  // 同步到云端（非云端拉取触发的保存才推送，且有 Token 才推送；防抖合并连续编辑）
+  if (!isCloudSave && trip && trip.days && GITHUB_CONFIG.hasToken()) {
+    cloudSaveDebounced();
   }
 }
 
@@ -2266,17 +3123,485 @@ function initTabs() {
       renderOverviewHome();
     } else {
       renderTimeline(currentDay);
-      renderMap(currentDay);
+      ensureMobileMapRender(currentDay);
     }
   };
 }
 
 /* ====================== 总览首页 ====================== */
+/* ===== 旅行概况 / 每日描述（数据驱动自动生成） ===== */
+/* 计算两点间球面距离（km，Haversine）——用于估算每日路程 */
+function haversineKm(lng1, lat1, lng2, lat2) {
+  var R = 6371;
+  var dLat = (lat2 - lat1) * Math.PI / 180;
+  var dLng = (lng2 - lng1) * Math.PI / 180;
+  var a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+          Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * Math.sin(dLng / 2) * Math.sin(dLng / 2);
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
+/* 分析某天：总路程 km / 最高海拔 / 最低夜间温度 / 类型分布 */
+function analyzeDay(d) {
+  var dist = 0, maxAlt = 0, minTemp = null, maxTemp = null;
+  var pois = d.pois || [];
+  var prev = (d.startLocation && d.startLocation.lng && d.startLocation.lat)
+    ? { lng: parseFloat(d.startLocation.lng), lat: parseFloat(d.startLocation.lat) } : null;
+  pois.forEach(function(p) {
+    if (prev && p.lng && p.lat) {
+      dist += haversineKm(prev.lng, prev.lat, parseFloat(p.lng), parseFloat(p.lat));
+    }
+    if (p.lng && p.lat) prev = { lng: parseFloat(p.lng), lat: parseFloat(p.lat) };
+    if (p.altitude) maxAlt = Math.max(maxAlt, parseFloat(p.altitude));
+    if (p.lng && p.lat) {
+      var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
+      if (info && weatherCache[info.adcode] && weatherCache[info.adcode].forecasts &&
+          weatherCache[info.adcode].forecasts.length > 0) {
+        var f = weatherCache[info.adcode].forecasts[0];
+        if (f.nightTemp) {
+          var t = parseInt(f.nightTemp);
+          if (minTemp === null || t < minTemp) minTemp = t;
+        }
+        if (f.dayTemp) {
+          var dt = parseInt(f.dayTemp);
+          if (maxTemp === null || dt > maxTemp) maxTemp = dt;
+        }
+      }
+    }
+  });
+  var types = {};
+  pois.forEach(function(p) { types[p.type] = (types[p.type] || 0) + 1; });
+  return { dist: dist, maxAlt: maxAlt, minTemp: minTemp, maxTemp: maxTemp, types: types };
+}
+
+/* 总览旅途提示：板块化（穿衣/天气/海拔/驾驶/药品），汇集整个行程统一说，少套话多数据 */
+function buildTripSummaryHtml() {
+  if (!trip || !trip.days || trip.days.length === 0) return '';
+  var analyses = trip.days.map(function(d) { return { day: d.day, d: d, a: analyzeDay(d) }; });
+  var totalDist = analyses.reduce(function(s, x) { return s + x.a.dist; }, 0);
+
+  /* 多维度找关键日 */
+  var maxDistDay = null, maxAltDay = null, minTempDay = null, maxTempDay = null;
+  analyses.forEach(function(x) {
+    if (x.a.dist > 50 && (!maxDistDay || x.a.dist > maxDistDay.a.dist)) maxDistDay = x;
+    if (x.a.maxAlt > 0 && (!maxAltDay || x.a.maxAlt > maxAltDay.a.maxAlt)) maxAltDay = x;
+    if (x.a.minTemp !== null && (!minTempDay || x.a.minTemp < minTempDay.a.minTemp)) minTempDay = x;
+    if (x.a.maxTemp !== null && (!maxTempDay || x.a.maxTemp > maxTempDay.a.maxTemp)) maxTempDay = x;
+  });
+
+  var blocks = [];
+
+  /* 0. 开篇一句话（概况，不啰嗦） */
+  var intro = '本次行程共 ' + trip.days.length + ' 天 ' + countPOIs() + ' 个行程点';
+  if (totalDist > 0) intro += '，估算总里程约 ' + Math.round(totalDist) + 'km';
+  intro += '。';
+  blocks.push({ icon: '📋', title: '行程概况', lines: [intro] });
+
+  /* 1. 穿衣指南：温度范围 + 主穿衣建议 + 场景/游玩项目补充（像朋友给建议一样具体） */
+  var clothLines = [];
+  /* 汇总全程温度范围（最低夜间 ~ 最高白天） */
+  var minAll = null, maxAll = null;
+  analyses.forEach(function(x) {
+    if (x.a.minTemp !== null && (minAll === null || x.a.minTemp < minAll)) minAll = x.a.minTemp;
+    if (x.a.maxTemp !== null && (maxAll === null || x.a.maxTemp > maxAll)) maxAll = x.a.maxTemp;
+  });
+  if (minAll !== null && maxAll !== null) {
+    var minV = Math.round(minAll), maxV = Math.round(maxAll);
+    var base = '本次旅程温度大致在 ' + minV + '~' + maxV + '℃ 之间变化。';
+    /* 主穿衣建议（按温度区间给一套主打方案） */
+    if (maxV <= 15) {
+      base += '整体偏冷，以厚外套/羽绒服为主，内搭保暖内衣 + 毛衣，裤子选加绒款。';
+    } else if (minV >= 25) {
+      base += '整体偏热，以短袖/速干衣为主，备一件薄防晒衣应对空调和早晚。';
+    } else if (minV >= 15 && maxV <= 28) {
+      base += '建议以长袖 + 薄外套为主（如卫衣、衬衫 + 风衣），白天热可脱外套，早晚加衣。';
+    } else if (maxV <= 28) {
+      base += '白天可穿短袖/长袖，但早晚较凉，建议带 1-2 件厚外套/卫衣备用。';
+    } else {
+      base += '白天偏热（最高 ' + maxV + '℃）建议短袖为主，但早晚/夜间最低 ' + minV + '℃，必须备一件外套。';
+    }
+    clothLines.push(base);
+    /* 温差大提醒 */
+    if (maxV - minV >= 15) {
+      clothLines.push('全程温差 ' + (maxV - minV) + '℃，洋葱式穿法最实用：内层吸汗、中层保暖、外层防风，进出室内外都方便。');
+    }
+    /* 场景补充：高海拔/山区 → 额外保暖件数 */
+    if (maxAltDay && maxAltDay.a.maxAlt >= 3000) {
+      clothLines.push('DAY' + maxAltDay.day + ' 海拔较高（约 ' + Math.round(maxAltDay.a.maxAlt) + 'm），山上风大降温快，建议多带一件防风冲锋衣或轻薄羽绒服，拍照时穿脱方便。');
+    }
+    /* 场景补充：降水 → 防水装备 */
+    var rainDays2 = [];
+    analyses.forEach(function(x) {
+      var f = null;
+      (x.d.pois || []).forEach(function(p) {
+        if (f) return;
+        if (!p.lng || !p.lat) return;
+        var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
+        if (info) f = getDayForecast(info.adcode, x.day);
+      });
+      if (f && /雨|雪/.test(f.dayWeather || '')) rainDays2.push(x.day);
+    });
+    if (rainDays2.length > 0) {
+      clothLines.push('DAY' + rainDays2.join('、DAY') + ' 预计有降水，带一件轻便防水外套或雨衣，鞋子选防滑/防水的。');
+    }
+    /* 场景补充：美食/拍照多 → 多带换装 */
+    var foodDays = 0, scenicPois = 0;
+    analyses.forEach(function(x) {
+      (x.d.pois || []).forEach(function(p) {
+        if (p.type === 'scenic') scenicPois++;
+        if (p.type === 'food') foodDays++;
+      });
+    });
+    if (scenicPois >= 5) {
+      clothLines.push('行程里景点不少（' + scenicPois + ' 个），建议带 2-3 套可拍照的搭配：1 套亮色外套 + 1 套舒适休闲装，换着穿出片率高。');
+    }
+    if (foodDays >= 5) {
+      clothLines.push('美食安排较多，内搭可以选宽松舒适的款式，吃撑了也不勒肚子。');
+    }
+  } else {
+    /* fallback：没拿到任何温度数据时，给中肯的具体建议（不再说"温度适宜"废话） */
+    if (!minAll && !maxAll) {
+      clothLines.push('暂无温度数据。建议在天气卡片打开过任意一天后此板块会自动汇总，或检查 POI 是否有经纬度。');
+      clothLines.push('通用建议：旅行以"白天轻便 + 早晚加件外套"为底色，再根据海拔/季节/雨天叠加装备。');
+    } else {
+      clothLines.push('当前仅获取到部分温度数据，建议点开天气汇总补充加载后再看。');
+    }
+  }
+  blocks.push({ icon: '🧥', title: '穿衣指南', lines: clothLines });
+/* 2. 天气概况（有预报的天气信息汇总） */
+  var wLines = [];
+  var rainDays = [], clearDays = [], otherDays = [];
+  analyses.forEach(function(x) {
+    var f = null;
+    (x.d.pois || []).forEach(function(p) {
+      if (f) return;
+      if (!p.lng || !p.lat) return;
+      var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
+      if (info) f = getDayForecast(info.adcode, x.day);
+    });
+    if (f) {
+      var w = f.dayWeather || '';
+      if (/雨|雪/.test(w)) rainDays.push(x.day);
+      else if (/晴/.test(w)) clearDays.push(x.day);
+      else otherDays.push(x.day);
+    }
+  });
+  if (rainDays.length > 0) wLines.push('预计有降水的日子：DAY' + rainDays.join('、DAY') + '，备好雨具，山区注意路滑。');
+  if (clearDays.length > 0) wLines.push('预计晴好的日子：DAY' + clearDays.join('、DAY') + '，适合户外活动和拍照。');
+  if (otherDays.length > 0) wLines.push('多云/阴天的日子：DAY' + otherDays.join('、DAY') + '，光线一般但出行无碍。');
+  /* fallback：明确说"什么时候会有数据"，而不是"再看看" */
+  if (wLines.length === 0) {
+    wLines.push('当前还没拿到任何天的预报——可能所有 POI 都没经纬度，或还没打开过天气卡片。');
+    wLines.push('操作：进入任意一天详情页等天气加载完，再点开本弹窗就会自动汇总。');
+  }
+  blocks.push({ icon: '🌦', title: '天气概况', lines: wLines });
+
+  /* 3. 海拔与高反 */
+  var altLines = [];
+  if (maxAltDay && maxAltDay.a.maxAlt >= 3500) {
+    altLines.push('DAY' + maxAltDay.day + ' 海拔最高 ' + Math.round(maxAltDay.a.maxAlt) + 'm，有高反风险。出发前一周开始吃红景天，到高海拔当天别剧烈运动、别洗澡洗头，多喝温水；头痛厉害或睡不着立即下撤。');
+  } else if (maxAltDay && maxAltDay.a.maxAlt >= 2500) {
+    altLines.push('DAY' + maxAltDay.day + ' 海拔最高 ' + Math.round(maxAltDay.a.maxAlt) + 'm，部分人可能有轻微反应。不喝咖啡、不暴饮暴食、晚上早睡。');
+  } else if (maxAltDay && maxAltDay.a.maxAlt > 0) {
+    altLines.push('全程最高海拔 ' + Math.round(maxAltDay.a.maxAlt) + 'm（DAY' + maxAltDay.day + '），基本无高反压力。');
+  } else {
+    altLines.push('全程海拔不高，无需担心高反。');
+  }
+  blocks.push({ icon: '⛰️', title: '海拔与高反', lines: altLines });
+
+  /* 4. 长途驾驶 */
+  var driveLines = [];
+  if (maxDistDay && maxDistDay.a.dist >= 200) {
+    driveLines.push('DAY' + maxDistDay.day + ' 是全程最长的一天（约 ' + Math.round(maxDistDay.a.dist) + 'km），相当于一口气开 4 小时以上。建议 7 点前出发、每 2 小时休息 20 分钟、午后别硬撑。');
+  } else if (maxDistDay && maxDistDay.a.dist >= 100) {
+    driveLines.push('DAY' + maxDistDay.day + ' 里程最长（约 ' + Math.round(maxDistDay.a.dist) + 'km），开车 2-3 小时，中间安排一次休息。');
+  } else if (maxDistDay) {
+    driveLines.push('全程里程较轻松（最长 DAY' + maxDistDay.day + ' 约 ' + Math.round(maxDistDay.a.dist) + 'km），节奏舒适。');
+  } else {
+    driveLines.push('全程自驾里程不长，行程轻松。');
+  }
+  if (maxAltDay && maxAltDay.a.maxAlt >= 3000) {
+    driveLines.push('高海拔路段盘山弯多，会车靠右减速，雨雾天开雾灯，冬春留意暗冰。');
+  }
+  blocks.push({ icon: '🚗', title: '长途驾驶', lines: driveLines });
+
+  /* 5. 药品准备（数据驱动，非套话） */
+  var medLines = [];
+  if (maxAltDay && maxAltDay.a.maxAlt >= 3500) {
+    medLines.push('高反药：红景天（提前 1 周吃）、葡萄糖、布洛芬（缓解头痛）。');
+  }
+  if (minTempDay && minTempDay.a.minTemp !== null && minTempDay.a.minTemp <= 10) {
+    medLines.push('感冒药、退烧药（低温路段易感冒）。');
+  }
+  if (maxTempDay && maxTempDay.a.maxTemp !== null && maxTempDay.a.maxTemp >= 30) {
+    medLines.push('防中暑：藿香正气水、电解质水。');
+  }
+  if (rainDays.length > 0) {
+    medLines.push('肠胃药（雨天饮食卫生变化）。');
+  }
+  if (medLines.length === 0) medLines.push('基础药品带创可贴、肠胃药即可。');
+  blocks.push({ icon: '💊', title: '药品准备', lines: medLines });
+
+  /* 渲染：板块化卡片（与每天旅途提示风格一致） */
+  var html = '';
+  blocks.forEach(function(b) {
+    html += '<div style="margin-bottom:10px;padding:10px 14px;background:#fff;border-left:3px solid #667eea;border-radius:6px;">' +
+      '<div style="font-weight:700;font-size:13px;color:#2d3748;margin-bottom:4px;display:flex;align-items:center;gap:6px;">' +
+        '<span>' + b.icon + '</span>' + b.title +
+      '</div>';
+    b.lines.forEach(function(l) {
+      html += '<div style="font-size:13px;color:#4a5568;line-height:1.75;margin-top:2px;">' + l + '</div>';
+    });
+    html += '</div>';
+  });
+  return html;
+}
+/* 切换旅途提示面板（总览 + 详情页共用：传入面板 id，切换 display） */
+function toggleTripTip(panelId) {
+  var panel = document.getElementById(panelId);
+  if (!panel) return;
+  panel.style.display = (panel.style.display === 'none') ? 'block' : 'none';
+}
+
+/* 打开旅途提示弹窗（通用，传入 HTML 内容即可） */
+function openTripTipModal(html) {
+  document.getElementById('dayTripTipModalContent').innerHTML = html;
+  var modal = document.getElementById('dayTripTipModal');
+  modal.classList.add('show');
+  modal.style.display = 'flex';
+}
+
+/* 关闭旅途提示弹窗 */
+function closeDayTripTipModal() {
+  var modal = document.getElementById('dayTripTipModal');
+  modal.classList.remove('show');
+  modal.style.display = 'none';
+}
+
+/* 详情页：打开当天旅途提示弹窗（先主动加载当天天气再生成内容，避免"暂无天气数据"） */
+function openDayTripTipModal(day) {
+  openTripTipModal('<div style="color:#a0aec0;padding:20px 0;text-align:center;">正在加载当天天气与旅途信息...</div>');
+  ensureDayWeatherLoaded(day, function() {
+    openTripTipModal(buildDayTripTipModalContent(day));
+  });
+}
+
+/* 主动加载某天途经城市的天气：adcodeCache 未命中的 POI 先调逆地理编码补齐 adcode，再拉天气，全部完成后回调 */
+function ensureDayWeatherLoaded(day, callback) {
+  var d = trip.days.find(function(x) { return x.day === day; });
+  if (!d) { callback(); return; }
+  var cityMap = {};
+  var needAdcode = [];  /* adcodeCache 未命中的 POI，稍后补查 adcode */
+  (d.pois || []).forEach(function(p) {
+    if (!p.lng || !p.lat) return;
+    var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
+    if (!info) { needAdcode.push(p); return; }
+    if (cityMap[info.adcode]) return;
+    cityMap[info.adcode] = { adcode: info.adcode, city: info.city, lng: p.lng, lat: p.lat };
+  });
+
+  /* 补查 adcode（逆地理编码），完成后收集 cityMap */
+  function collectAfterAdcode() {
+    needAdcode.forEach(function(p) {
+      var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
+      if (!info) return;
+      if (cityMap[info.adcode]) return;
+      cityMap[info.adcode] = { adcode: info.adcode, city: info.city, lng: p.lng, lat: p.lat };
+    });
+    var pending = Object.values(cityMap).filter(function(it) {
+      var w = weatherCache[it.adcode];
+      return !(w && w.forecasts && w.forecasts.length >= 3);
+    });
+    if (pending.length === 0) { callback(); return; }
+    var done = 0;
+    pending.forEach(function(it) {
+      fetchWeatherForSummary(it.adcode, it.city, it.lng, it.lat, function() {
+        done++;
+        if (done >= pending.length) callback();
+      });
+    });
+  }
+
+  if (needAdcode.length === 0) { collectAfterAdcode(); return; }
+  var adDone = 0;
+  needAdcode.forEach(function(p) {
+    fetchAdcodeByRest(p.lng, p.lat, function() {
+      adDone++;
+      if (adDone >= needAdcode.length) collectAfterAdcode();
+    });
+  });
+}
+
+/* 总览：打开行程总结弹窗（先主动加载所有天的天气，避免显示"未完全加载"） */
+function openOverviewTripTip() {
+  openTripTipModal('<div style="color:#a0aec0;padding:24px 0;text-align:center;"><div class="spinner" style="margin:0 auto 10px;"></div>正在汇总整个行程的天气与旅途信息...</div>');
+  ensureAllDaysWeatherLoaded(function() {
+    openTripTipModal(buildTripSummaryHtml());
+  });
+}
+
+/* 主动加载所有天的天气（adcode + 预报）。每并行触发 ensureDayWeatherLoaded，全部完成后回调 */
+function ensureAllDaysWeatherLoaded(callback) {
+  var days = trip.days || [];
+  if (days.length === 0) { callback(); return; }
+  var done = 0;
+  var finished = false;
+  function tick() {
+    done++;
+    if (done >= days.length && !finished) { finished = true; callback(); }
+  }
+  days.forEach(function(d) {
+    ensureDayWeatherLoaded(d.day, tick);
+  });
+}
+/* 根据当天天气数据，获取当天对应的预报（多天预报数组中找匹配 day 的；找不到兜底取第一个） */
+function getDayForecast(adcode, day) {
+  var c = weatherCache[adcode];
+  if (!c || !c.forecasts || c.forecasts.length === 0) return null;
+  try {
+    if (typeof getDayDate === 'function') {
+      var dayDate = getDayDate(day);
+      if (dayDate) {
+        for (var i = 0; i < c.forecasts.length; i++) {
+          if (c.forecasts[i].date === dayDate) return c.forecasts[i];
+        }
+      }
+    }
+  } catch(e) {}
+  return c.forecasts[0];
+}
+
+/* 生成详情页某天"旅途提示"弹窗内容（多分类：穿衣建议/出行事项/药品准备/行程疲劳/路途路况/旅途注意事项） */
+function buildDayTripTipModalContent(day) {
+  var d = trip.days.find(function(x) { return x.day === day; });
+  if (!d) return '<div style="color:#a0aec0;padding:16px 0;">暂无该天数据</div>';
+  var a = analyzeDay(d);
+  /* 取当天天气数据（任一 POI 缓存到的当天预报） */
+  var f = null;
+  (d.pois || []).forEach(function(p) {
+    if (f) return;
+    if (!p.lng || !p.lat) return;
+    var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
+    if (info) f = getDayForecast(info.adcode, day);
+  });
+
+  var t = f ? parseInt(f.dayTemp) : null, nt = f ? parseInt(f.nightTemp) : null;
+  var w = f ? (f.dayWeather || '') : '';
+  var wind = f ? (f.dayWind || '') : '';
+
+  /* 1. 穿衣建议（达人叙述：场景感 + 具体建议） */
+  var clothingTips = [];
+  if (t !== null) {
+    if (nt !== null && nt <= 5) clothingTips.push({ icon: '🧥', text: '夜间 ' + nt + '℃ 真心冷——羽绒服 + 秋裤走起。晚上出门一定要裹严实，不然站一会儿就冻透了。' });
+    else if (nt !== null && nt <= 15) clothingTips.push({ icon: '👕', text: '早晚 ' + nt + '℃ 有点凉，薄外套 + 长袖是标配。中午太阳出来 ' + t + '℃ 可以脱掉外套痛快拍照。' });
+    else if (t >= 28) clothingTips.push({ icon: '👕', text: '白天 ' + t + '℃，短袖 + 防晒衣最舒服。但车上/室内空调冷气足，备一件薄外套防温差。' });
+    else clothingTips.push({ icon: '👔', text: '温度适宜（' + nt + '℃~' + t + '℃），长袖 + 薄外套即可，出门拍照不臃肿。' });
+    if (nt !== null && t - nt >= 12) clothingTips.push({ icon: '🔁', text: '今天温差 ' + (t - nt) + '℃ 很大，洋葱式穿法最实用：内层吸汗、中层保暖、外层防风，方便进出室内外。' });
+  } else {
+    clothingTips.push({ icon: '📌', text: '暂无天气数据，出发前查一下当地天气。海拔高的地方早晚冷、温差大，建议多层穿搭。' });
+  }
+
+  /* 2. 出行事项（基于天气 + 海拔，达人叙述） */
+  var travelTips = [];
+  if (f) {
+    if (/晴/.test(w) && t !== null && t >= 25) travelTips.push({ icon: '☀️', text: '晴天高温紫外线强，出门 20 分钟前涂防晒霜（SPF30+ 起），户外活动每 2 小时补涂。墨镜、遮阳帽、遮阳伞三件套至少带一件。' });
+    else if (/晴/.test(w) && t !== null && t >= 20) travelTips.push({ icon: '🌤', text: '晴天紫外线中等，防晒霜 SPF15+ 就行，长时间户外记得戴帽子。' });
+    if (/雨|雪/.test(w)) travelTips.push({ icon: '☔', text: '有降水，雨伞/雨衣必带。山区道路湿滑，开车减速。备个塑料袋装手机/相机防潮，比塞包里安全。' });
+    if (/雷/.test(w)) travelTips.push({ icon: '⚡', text: '雷雨天避开户外开阔地、高山、海边，远离金属物。看到闪电尽快撤到室内或车里，别继续赶路。' });
+    if (t !== null && t >= 30) travelTips.push({ icon: '❄️', text: '高温天避免正午 11-14 点暴晒（紫外线峰值），中午找个咖啡馆或博物馆避暑，顺便休整。多喝水，电解质水比白水更解渴。' });
+    if (nt !== null && nt <= 10) travelTips.push({ icon: '🔥', text: '夜间低温，看星空或夜游一定穿厚，老人小孩格外注意。车里暖风别开太足，避免一冷一热感冒。' });
+    if (/大风|狂风|飓风/.test(wind)) travelTips.push({ icon: '💨', text: '大风天注意高空坠物，山区索道/缆车可能停运（出发前打电话确认），景区栈道注意安全别靠边。' });
+  } else if (a.maxAlt >= 2500) {
+    travelTips.push({ icon: '☀️', text: '高原紫外线比平原强很多，即使阴天也要防晒。墨镜是必备，阳光+雪地反光刺眼。' });
+  }
+
+  /* 3. 药品准备（达人叙述：预防+应对+基础） */
+  var medicineTips = [];
+  if (a.maxAlt >= 3500) {
+    medicineTips.push({ icon: '💊', text: '高反：红景天出发前一周开始吃，到了不要剧烈运动（第一天别洗澡！真的会加重反应）。头痛厉害就下撤，别硬撑。' });
+    medicineTips.push({ icon: '🫁', text: '高反应对：头痛/失眠/气短立即停止上升，原地休息 + 吸氧；严重立即下撤就医，别拖。' });
+    medicineTips.push({ icon: '🩺', text: '基础药品：感冒药、肠胃药、创可贴、晕车药、葡萄糖。山里就医不便，自备最稳。' });
+  } else if (a.maxAlt >= 2500) {
+    medicineTips.push({ icon: '💊', text: '海拔 ' + Math.round(a.maxAlt) + 'm 不算特别高，但部分人会有轻微反应（头晕、失眠、没食欲）。建议带感冒药、肠胃药，前两天不喝咖啡不暴饮暴食。' });
+  }
+  if (f && nt !== null && nt <= 10) medicineTips.push({ icon: '🤧', text: '低温易感冒，备感冒药、退烧药、维生素 C。老人小孩加备止咳药。' });
+  if (f && t !== null && t >= 25 && /晴/.test(w)) medicineTips.push({ icon: '💧', text: '防中暑：藿香正气水、电解质水、充足饮水。中午别在太阳下暴晒超过 1 小时。' });
+  medicineTips.push({ icon: '🩹', text: '基础急救：创可贴、碘伏、纱布、医用胶布。长途自驾这些必备，谁用谁知道。' });
+
+  /* 4. 行程疲劳（达人叙述：分段建议 + 高海拔提醒） */
+  var fatigueTips = [];
+  if (a.dist >= 200) fatigueTips.push({ icon: '😴', text: '今天 ' + Math.round(a.dist) + 'km 是长途，强建议分段驾驶：每 2 小时休息 20 分钟，午后最困别硬撑。车上备薄荷糖/咖啡提神，但别依赖。' });
+  else if (a.dist >= 100) fatigueTips.push({ icon: '🚗', text: '今天 ' + Math.round(a.dist) + 'km 中长途，连续驾驶不超过 3 小时，避开午后 13-15 点疲劳高峰。中途找地方吃顿正经饭，比啃面包强。' });
+  else if (a.dist >= 50) fatigueTips.push({ icon: '👍', text: '今天 ' + Math.round(a.dist) + 'km 节奏适中，按正常节奏开就行。但别一直开，每 1-2 小时停一停伸伸腿。' });
+  else fatigueTips.push({ icon: '🎉', text: '今天只有 ' + Math.round(a.dist) + 'km 轻松行程，可以多逛几个景点，不用赶时间。慢一点才能拍到好照片。' });
+  if (a.maxAlt >= 3500) fatigueTips.push({ icon: '⛰️', text: '高海拔会加剧疲劳感，行动放缓，多喝水多休息。前 24 小时别安排太满，给身体适应时间。' });
+  if (a.dist + a.maxAlt * 0.01 >= 250) fatigueTips.push({ icon: '🥱', text: '总强度偏高（路程 + 海拔），晚上早点休息，别熬夜刷手机，明天才有力气。' });
+
+  /* 5. 路况（达人叙述：车况 + 路段 + 天气路况） */
+  var roadTips = [];
+  if (a.dist >= 100) roadTips.push({ icon: '🛣', text: '长途出发前检查车况：轮胎气压（含备胎）、油量加满、刹车片、灯光、玻璃水、雨刮。备饮用水和干粮（巧克力/坚果），不要空腹开车。' });
+  if (a.maxAlt >= 3000) roadTips.push({ icon: '🏔', text: '高海拔盘山公路多，弯急坡陡，注意减速。会车时靠右，雨雾天开雾灯。冬季可能有暗冰/积雪，提前查路况。' });
+  if (f && /雨|雪/.test(w)) roadTips.push({ icon: '🌧', text: '雨天山区注意落石/塌方/泥石流，避开靠山崖一侧行驶。保持车距，少变道。涉水路段下车查看，别硬过。' });
+  if (f && /大风|狂风/.test(wind)) roadTips.push({ icon: '💨', text: '横风影响驾驶，过桥/山口/平原注意侧风，大车（SUV/皮卡）尤其容易被吹偏。' });
+  if (f && /雪/.test(w)) roadTips.push({ icon: '❄️', text: '雪天必备：防滑链、刮雪器、暖宝宝。高海拔路段结冰/积雪可能临时管控，提前查通行信息。' });
+
+  /* 6. 旅途注意事项（精简到 3 条内：去掉通用套话，只留数据驱动的关键提醒） */
+  var noticeTips = [];
+  if (a.maxAlt >= 3500) {
+    noticeTips.push({ icon: '🏔', text: '高海拔避免剧烈运动/暴饮暴食/饮酒/熬夜，前两天是适应期，多喝水多休息。' });
+  }
+  if (a.dist >= 200) {
+    noticeTips.push({ icon: '🌙', text: '长途避免夜间行车——山路视线差、动物出没、易打瞌睡，宁可早起多休息。' });
+  } else if (a.dist >= 100) {
+    noticeTips.push({ icon: '⛽', text: '进山前加满油，山区/高速服务区可能 50-100km 没加油站。' });
+  }
+  /* 兜底：基础安全提示（仅 1 条，覆盖证件 + 报平安 + 离线地图/充电的合并提醒） */
+  if (noticeTips.length === 0) {
+    noticeTips.push({ icon: '📌', text: '身份证/驾照随身带，山区信号差可提前下载离线地图。' });
+  } else if (noticeTips.length < 3) {
+    noticeTips.push({ icon: '📌', text: '身份证/驾照随身带；行程告诉家人朋友，每天报平安。' });
+  }
+/* 渲染分组（统一卡片风格：白底 + 蓝色左边框） */
+  function renderSection(title, icon, tips) {
+    if (!tips || tips.length === 0) return '';
+    var html = '<div style="background:#fff;border-left:3px solid #667eea;border-radius:8px;padding:10px 14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:14px;font-weight:700;color:#1a202c;">' +
+        '<span style="font-size:16px;">' + icon + '</span>' +
+        '<span>' + title + '</span>' +
+      '</div>';
+    tips.forEach(function(tip) {
+      html += '<div style="display:flex;gap:10px;align-items:flex-start;padding:4px 0;font-size:13px;color:#4a5568;line-height:1.6;">' +
+        '<span style="flex:none;font-size:16px;width:22px;text-align:center;line-height:1.6;">' + tip.icon + '</span>' +
+        '<span style="flex:1;min-width:0;">' + tip.text + '</span>' +
+      '</div>';
+    });
+    html += '</div>';
+    return html;
+  }
+
+  /* 弹窗内容（含头部 + 6 个分类卡片） */
+  var html = '<div style="padding:4px 2px;">';
+  /* 头部摘要 */
+  html += '<div style="margin-bottom:14px;padding:12px 14px;background:linear-gradient(135deg,#f0f7ff,#e6f3ff);border-radius:10px;">' +
+    '<div style="font-size:16px;font-weight:700;color:#1a202c;">DAY ' + day + ' · ' + escapeHtml(d.title || '') + '</div>' +
+    '<div style="font-size:12px;color:#718096;margin-top:4px;">' +
+      d.pois.length + ' 个行程点' +
+      (a.dist > 0 ? ' · 约 ' + Math.round(a.dist) + 'km' : '') +
+      (a.maxAlt > 0 ? ' · 海拔最高 ' + Math.round(a.maxAlt) + 'm' : '') +
+      (f ? ' · ' + weatherIconText(w) + ' ' + nt + '°/' + t + '°' : '') +
+    '</div></div>';
+  /* 6 个分类卡片 */
+  html += renderSection('穿衣建议', '👕', clothingTips);
+  html += renderSection('出行事项', '🌤', travelTips);
+  html += renderSection('药品准备', '💊', medicineTips);
+  html += renderSection('行程疲劳', '😴', fatigueTips);
+  html += renderSection('路途路况', '🛣', roadTips);
+  html += renderSection('旅途注意事项', '📌', noticeTips);
+  html += '</div>';
+  return html;
+}
+
 function renderOverviewHome() {
   const panel = document.getElementById('timelinePanel');
-  /* 数据已加载完成，显示hero区域（避免加载前显示旧静态内容） */
-  var heroSection = document.getElementById('heroSection');
-  if (heroSection) heroSection.style.visibility = 'visible';
   var dayColors = ['#e17055','#00b894','#0984e3','#a29bfe','#fdcb6e','#e84393','#00cec9','#6c5ce7'];
   var totalPois = 0;
   trip.days.forEach(function(d) { totalPois += d.pois.length; });
@@ -2288,27 +3613,45 @@ function renderOverviewHome() {
       '<div class="overview-stats">' +
         '<div class="overview-stat-item"><div class="overview-stat-num">' + trip.days.length + '</div><div class="overview-stat-label">行程天数</div></div>' +
         '<div class="overview-stat-item"><div class="overview-stat-num">' + totalPois + '</div><div class="overview-stat-label">景点数量</div></div>' +
+        '<div class="overview-stat-item overview-stat-tip" id="overviewTripTipBtn" onclick="openOverviewTripTip()">' +
+          '<div class="overview-stat-num">💡</div>' +
+          '<div class="overview-stat-label">旅途提示</div>' +
+        '</div>' +
       '</div>' +
       '<div class="overview-day-cards">' +
         trip.days.map(function(d, i) {
           var color = dayColors[i % dayColors.length];
           var poiCount = d.pois.length;
+          /* 优先使用 day.cover 封面；否则用第一个 POI 的图片；最后用彩色占位 */
+          var cover = d.cover || (d.pois && d.pois[0] && d.pois[0].img) || '';
+          var coverStyle = cover
+            ? 'background-image:url(\'' + escapeHtml(cover) + '\');background-size:cover;background-position:center;'
+            : 'background:linear-gradient(135deg,' + color + ' 0%,' + color + 'cc 100%);';
+          var coverOverlay = '';  /* 蒙版会盖在标题上方导致白字变暗，直接不渲染（标题已带 text-shadow 保证可读） */
+          var dayColorLighter = color + '22';
           return '<div class="overview-day-card" data-day="' + d.day + '" style="border-left:4px solid ' + color + ';">' +
-            '<div class="overview-day-card-header">' +
-              '<div class="overview-day-badge" style="background:' + color + ';">DAY' + d.day + '</div>' +
-              '<div class="overview-day-card-title">' + escapeHtml(d.title) + '</div>' +
+            '<div class="overview-day-card-cover" style="' + coverStyle + '">' + coverOverlay +
+              '<div class="overview-day-card-cover-content">' +
+                '<div class="overview-day-badge" style="background:' + color + ';">DAY' + d.day + '</div>' +
+                '<div class="overview-day-card-title">' + escapeHtml(d.title || ('DAY ' + d.day)) + '</div>' +
+              '</div>' +
+              '<button class="overview-day-edit" data-day="' + d.day + '" title="编辑封面/标题/描述" style="background:rgba(255,255,255,.92);">' +
+                '<svg class="icon"><use xlink:href="#icon-edit"/></svg>' +
+              '</button>' +
             '</div>' +
-            '<div class="overview-day-card-desc">' + escapeHtml(d.desc) + '</div>' +
-            '<div class="overview-day-card-tags">' +
-              '<span class="ov-tag" style="background:' + color + '22;color:' + color + ';">' + poiCount + ' 个行程点</span>' +
+            '<div class="overview-day-card-body">' +
+              '<div class="overview-day-card-desc">' + (escapeHtml(d.desc) || '<span style="color:#718096;">点编辑图标添加描述</span>') + '</div>' +
+              '<div class="overview-day-card-foot">' +
+                '<span class="ov-tag" style="background:' + dayColorLighter + ';color:' + color + ';">' + poiCount + ' 个行程点</span>' +
+                '<button class="overview-day-go" data-day="' + d.day + '" style="background:' + color + ';">查看详情 →</button>' +
+              '</div>' +
             '</div>' +
-            '<button class="overview-day-go" data-day="' + d.day + '" style="background:' + color + ';">查看详情 →</button>' +
           '</div>';
         }).join('') +
       '</div>' +
     '</div>';
 
-  // 绑定点击事件
+  // 绑定查看详情按钮
   panel.querySelectorAll('.overview-day-go').forEach(function(btn) {
     btn.onclick = function() {
       var day = parseInt(this.getAttribute('data-day'));
@@ -2317,12 +3660,30 @@ function renderOverviewHome() {
       var dayTab = document.querySelector('.tab[data-day="' + day + '"]');
       if (dayTab) dayTab.classList.add('active');
       renderTimeline(day);
-      renderMap(day);
+      ensureMobileMapRender(day);
+    };
+  });
+
+  // 绑定编辑按钮（双事件保险，确保移动端一定能触发）
+  panel.querySelectorAll('.overview-day-edit').forEach(function(btn) {
+    var handler = function(e) {
+      e.preventDefault();
+      e.stopPropagation();
+      var day = parseInt(this.getAttribute('data-day'));
+      try { openDayEditModal(day); } catch(err) { console.error('openDayEditModal 失败:', err); alert('打开编辑面板失败：' + err.message); }
+    };
+    btn.onclick = handler;
+    btn.ontouchend = function(e) {
+      // touchend 已触发 click，但某些浏览器会忽略合成 click，故手动触发一次
+      e.preventDefault();
+      e.stopPropagation();
+      var day = parseInt(this.getAttribute('data-day'));
+      try { openDayEditModal(day); } catch(err) { console.error('openDayEditModal 失败:', err); }
     };
   });
 
   // 总览模式下右侧地图显示全程（真实驾车路线）
-  renderOverviewMap();
+  ensureMobileMapRender(0);
 }
 
 function renderOverviewMap() {
@@ -2497,7 +3858,10 @@ function renderTimeline(day) {
       (editMode
         ? '<input class="day-title-edit" value="' + escapeHtml(dayData.title) + '" onblur="editDayField(' + day + ', \'title\', this.value)" placeholder="当天主题">' +
           '<input class="day-desc-edit" value="' + escapeHtml(dayData.desc) + '" onblur="editDayField(' + day + ', \'desc\', this.value)" placeholder="当天描述">'
-        : '<div class="day-title">DAY ' + day + ' · ' + escapeHtml(dayData.title) + '</div>' +
+        : '<div class="day-title-row">' +
+            '<div class="day-title">DAY ' + day + ' · ' + escapeHtml(dayData.title) + '</div>' +
+            '<button class="day-trip-tip-btn" onclick="openDayTripTipModal(' + day + ')">💡 旅途提示</button>' +
+          '</div>' +
           '<div class="day-desc">' + escapeHtml(dayData.desc) + '</div>'
       ) +
     '</div>' +
@@ -2542,17 +3906,17 @@ function renderPOICard(day, i, poi) {
   const detailPart = poi.detail
     ? '<div class="poi-detail" id="detail-' + day + '-' + i + '">' + poi.detail.split(/\n/).map(p => '<p>' + escapeHtml(p) + '</p>').join('') + '</div>'
     : '';
-  /* 非美食/购物类型显示天气 */
-  const weatherPart = noWeatherTypes.indexOf(poi.type) === -1
+  /* 天气显示：地址类始终显示；美食/购物仅在 10km 内无地址类 POI 时显示（避免区域天气缺失） */
+  const weatherPart = needWeatherForPOI(poi)
     ? '<div class="poi-weather" id="weather-' + day + '-' + i + '"><div class="poi-weather-loading">天气加载中...</div></div>'
     : '';
-  /* 海拔信息：美食/购物类型不显示，其余类型缺失时显示"海拔未填" */
-  const noAltTypes = ['food','shop'];
-  const altitudePart = noAltTypes.indexOf(poi.type) === -1
+  /* 海拔信息：逻辑同天气——地址类始终显示；美食/购物仅在 10km 内无地址类 POI 时显示（避免区域信息缺失） */
+  const altitudePart = needWeatherForPOI(poi)
     ? (poi.altitude
         ? '<span class="poi-alt-pill"><svg class="icon" style="font-size:10px;"><use xlink:href="#icon-mountain"/></svg> ' + poi.altitude + 'm</span>'
         : '<span class="poi-alt-pill poi-alt-empty"><svg class="icon" style="font-size:10px;"><use xlink:href="#icon-mountain"/></svg> 海拔未填</span>')
     : '';
+
   return '' +
     '<div class="poi-card ' + poi.type + '" data-day="' + day + '" data-index="' + i + '" style="animation-delay:' + (i*0.08) + 's">' +
       '<div class="poi-thumb">' + imgPart + '</div>' +
@@ -2682,12 +4046,76 @@ function dateToWeek(dateStr) {
   return d.getDay();
 }
 
-/* 使用 Open-Meteo API 获取多日天气预报（免费、无需 key、支持 7+ 天） */
+/* 获取多日天气预报：Open-Meteo 为主源（10 天，覆盖行程全部日期，POI 卡片 3 天/天气汇总 7 天靠它），
+   高德（4 天）仅在 Open-Meteo 失败时兜底。注意：不可把高德当主源，它只返回 4 天，行程超出会日期错位/显示不全 */
 function fetchWeather7Days(lng, lat, callback) {
+  /* Open-Meteo 主源：10 天（用户环境实测可达，能正常显示 10 天预报） */
+  fetchOpenMeteo(lng, lat, function(omForecasts) {
+    if (omForecasts && omForecasts.length > 0) {
+      callback(omForecasts);
+      return;
+    }
+    /* Open-Meteo 失败 → 高德兜底（4 天，当天数据可用） */
+    var adcode = null;
+    try {
+      var key = lng.toFixed(4) + ',' + lat.toFixed(4);
+      var info = adcodeCache[key];
+      if (info && info.adcode) adcode = info.adcode;
+    } catch(e) {}
+    if (adcode) {
+      fetchAmapWeather(adcode, function(amForecasts) {
+        if (amForecasts && amForecasts.length > 0) callback(amForecasts);
+        else callback(null);
+      });
+    } else {
+      callback(null);
+    }
+  });
+}
+
+/* 合并两套预报：按 date 去重，primary（高德）优先，secondary（Open-Meteo）补缺失日期，按日期升序 */
+function mergeForecasts(primary, secondary) {
+  var map = {};
+  (primary || []).forEach(function(f) { if (f && f.date) map[f.date] = f; });
+  (secondary || []).forEach(function(f) {
+    if (f && f.date && !map[f.date]) map[f.date] = f;
+  });
+  return Object.keys(map).sort().map(function(d) { return map[d]; });
+}
+/* 高德天气：4 天预报（国内稳定，返回天气/温度/风） */
+function fetchAmapWeather(adcode, callback) {
+  var url = 'https://restapi.amap.com/v3/weather/weatherInfo?key=' + AMAP_KEY +
+    '&city=' + adcode + '&extensions=all';
+  fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+    if (data && data.status === '1' && data.forecasts && data.forecasts.length > 0 &&
+        data.forecasts[0].casts && data.forecasts[0].casts.length > 0) {
+      var casts = data.forecasts[0].casts;
+      var forecasts = casts.map(function(c) {
+        return {
+          date: c.date,
+          week: c.week,
+          dayWeather: c.dayweather || '',
+          nightWeather: c.nightweather || '',
+          dayTemp: c.daytemp,
+          nightTemp: c.nighttemp,
+          dayWind: (c.daywind || '') + (c.daypower ? ' ' + c.daypower + '级' : '')
+        };
+      });
+      callback(forecasts);
+    } else {
+      callback(null);
+    }
+  }).catch(function() {
+    callback(null);
+  });
+}
+
+/* Open-Meteo API（海外源，国内可能慢/超时，仅作兜底） */
+function fetchOpenMeteo(lng, lat, callback) {
   var url = 'https://api.open-meteo.com/v1/forecast?latitude=' + lat +
     '&longitude=' + lng +
     '&daily=weathercode,temperature_2m_max,temperature_2m_min,windspeed_10m_max,winddirection_10m_dominant' +
-    '&timezone=Asia/Shanghai&forecast_days=10';
+    '&timezone=Asia/Shanghai&forecast_days=16';
   fetch(url).then(function(r) { return r.json(); }).then(function(data) {
     if (data && data.daily && data.daily.time && data.daily.time.length > 0) {
       var forecasts = data.daily.time.map(function(date, i) {
@@ -2714,8 +4142,7 @@ function fetchWeather7Days(lng, lat, callback) {
 /* 加载某天所有 POI 的天气 */
 function loadWeatherForDay(pois, day) {
   pois.forEach(function(poi, i) {
-    if (noWeatherTypes.indexOf(poi.type) !== -1) return;
-    if (!poi.lng || !poi.lat) return;
+    if (!needWeatherForPOI(poi)) return;
     loadWeatherForPOI(day, i, poi);
   });
 }
@@ -2776,16 +4203,25 @@ function loadWeatherForPOI(day, index, poi) {
   });
 }
 
-/* 根据 adcode 查询天气并渲染（使用 Open-Meteo 获取10天预报） */
+/* 根据 adcode 查询天气并渲染 */
 function renderWeatherByAdcode(day, index, adcodeInfo, poi) {
   var adcode = adcodeInfo.adcode || adcodeInfo;
   var cityName = adcodeInfo.city || poi.name;
-  /* 缓存命中，直接渲染 */
-  if (weatherCache[adcode]) {
-    renderWeatherBox(day, index, weatherCache[adcode]);
-    return;
+  /* 缓存命中且行程当天+后2天都在预报范围内（共3天完整），直接渲染 */
+  var cached = weatherCache[adcode];
+  if (cached && cached.forecasts && cached.forecasts.length >= 3) {
+    var dayDate = getDayDate(day);
+    var idx = -1;
+    for (var i = 0; i < cached.forecasts.length; i++) {
+      if (cached.forecasts[i].date === dayDate) { idx = i; break; }
+    }
+    if (idx >= 0 && idx + 3 <= cached.forecasts.length) {
+      renderWeatherBox(day, index, cached);
+      return;
+    }
+    /* 当天不在或不足3天（如高德 4 天覆盖不到行程后期）→ 重新拉取合并补齐 */
   }
-  /* 使用 Open-Meteo API 获取10天天气预报 */
+  /* 拉取天气（高德快源先出当天 + Open-Meteo 10 天合并，保证 3 天显示） */
   fetchWeather7Days(poi.lng, poi.lat, function(forecasts) {
     if (forecasts && forecasts.length > 0) {
       var cacheObj = { city: cityName, forecasts: forecasts };
@@ -2814,11 +4250,18 @@ function renderWeatherBox(day, index, weatherData) {
   }
   var forecasts;
   if (startIndex === -1) {
-    /* 找不到对应日期，回退到前3天 */
-    forecasts = allForecasts.slice(0, 3);
+    /* 行程当天不在预报范围内：先尝试显示预报的第一天作为参考，而非空白 */
+    var fallback = allForecasts.slice(0, Math.min(3, allForecasts.length));
+    if (fallback.length > 0) {
+      forecasts = fallback;
+    } else {
+      el.innerHTML = '<div class="poi-weather-loading">该日期暂无预报</div>';
+      return;
+    }
   } else {
     forecasts = allForecasts.slice(startIndex, startIndex + 3);
   }
+  /* 不足 3 天（预报末尾）→ 直接显示已有的天数，不再提示"缺几天"（16 天预报下基本不会触发） */
   var weekMap = ['日','一','二','三','四','五','六'];
   var html = '<div class="poi-weather-days">';
   forecasts.forEach(function(f) {
@@ -2860,18 +4303,24 @@ function renderWeatherSummary() {
     return;
   }
 
-  /* 收集所有需要显示天气的 POI（除美食/购物外） */
+  /* 收集需要显示天气的 POI：地址类（含出发地）始终加入；美食/购物仅在 10km 内无地址类时加入 */
   var poiList = [];
+  var firstSeen = {};  /* 记录每个地址（lng,lat）首次出现的顺序 */
+  var orderCounter = 0;
   trip.days.forEach(function(d) {
     (d.pois || []).forEach(function(p) {
-      if (noWeatherTypes.indexOf(p.type) !== -1) return;
-      if (!p.lng || !p.lat) return;
+      if (!needWeatherForPOI(p)) return;
+      var key = p.lng.toFixed(4) + ',' + p.lat.toFixed(4);
+      if (!(key in firstSeen)) {
+        firstSeen[key] = ++orderCounter;
+      }
       poiList.push({
         name: p.name,
         lng: p.lng,
         lat: p.lat,
         type: p.type,
-        day: d.day
+        day: d.day,
+        firstOrder: firstSeen[key]
       });
     });
   });
@@ -2901,7 +4350,7 @@ function renderWeatherSummary() {
       if (!cityGroups[adcode]) {
         cityGroups[adcode] = { city: city, adcode: adcode, pois: [], lng: poi.lng, lat: poi.lat };
       }
-      cityGroups[adcode].pois.push({ name: poi.name, day: poi.day, type: poi.type });
+      cityGroups[adcode].pois.push({ name: poi.name, day: poi.day, type: poi.type, firstOrder: poi.firstOrder });
 
       /* 已有天气缓存，直接判定完成 */
       if (weatherCache[adcode]) {
@@ -2930,9 +4379,10 @@ function renderWeatherSummary() {
   });
 }
 
-/* 为天气汇总拉取天气数据（使用 Open-Meteo 获取10天预报） */
+/* 为天气汇总拉取天气数据（Open-Meteo 主源）。缓存命中但不足 3 天（如早期高德 4 天缓存）则强制重拉 */
 function fetchWeatherForSummary(adcode, city, lng, lat, callback) {
-  if (weatherCache[adcode]) {
+  var cached = weatherCache[adcode];
+  if (cached && cached.forecasts && cached.forecasts.length >= 3) {
     callback();
     return;
   }
@@ -2954,15 +4404,13 @@ function renderWeatherSummaryList(cityGroups, totalPoiCount) {
     return;
   }
 
-  /* 按旅途前后顺序排序：取每个城市分组中 POI 最小的 day 作为排序依据 */
+  /* 按"地址首次出现顺序"排序：取每个城市分组中 POI 最小的 firstOrder 作为排序依据 */
   groups.forEach(function(g) {
-    if (!g.pois || !g.pois.length) { g.minDay = 9999; return; }
-    g.minDay = Math.min.apply(null, g.pois.map(function(p) { return p.day; }));
+    if (!g.pois || !g.pois.length) { g.minOrder = 9999; return; }
+    g.minOrder = Math.min.apply(null, g.pois.map(function(p) { return p.firstOrder || 9999; }));
   });
   groups.sort(function(a, b) {
-    /* 先按最早出现的 day 排序；day 相同则按城市名排序 */
-    if (a.minDay !== b.minDay) return a.minDay - b.minDay;
-    return String(a.city).localeCompare(String(b.city), 'zh-CN');
+    return a.minOrder - b.minOrder;  // 严格按首次出现顺序
   });
 
   var weekMap = ['日','一','二','三','四','五','六'];
@@ -2989,7 +4437,7 @@ function renderWeatherSummaryList(cityGroups, totalPoiCount) {
         uniquePois.push(p);
       }
     });
-    uniquePois.sort(function(a, b) { return a.day - b.day; });
+    uniquePois.sort(function(a, b) { return (a.firstOrder || 9999) - (b.firstOrder || 9999); });
 
     var poiNamesHtml = uniquePois.map(function(p) {
       var typeLabel = typeLabels[p.type] || '地点';
@@ -3185,7 +4633,7 @@ function refreshEta() {
   var result = document.getElementById('etaResultArea');
 
   if (!etaCurrentDest) {
-    result.innerHTML = '<div class="eta-error">暂无可导航的行程地点，请先添加带坐标的 POI</div>';
+    result.innerHTML = '<div class="eta-error">暂无可导航的行程地点，请先添加带坐标的地点</div>';
     return;
   }
 
@@ -3509,6 +4957,11 @@ function loadAMap() {
 }
 
 async function initMap() {
+  // 移动端：卡片模式下容器隐藏，初始化会得到 0 尺寸地图，改为懒加载（首次点地图按钮才初始化）
+  if (isMobileViewport() && !mobileMapOpen) {
+    mobileMapLazyInit = true;
+    return;
+  }
   try {
     AMap = await loadAMap();
     const container = document.getElementById('mapContainer');
@@ -3525,6 +4978,47 @@ async function initMap() {
     console.warn('地图加载失败', e);
     showMapFallback();
   }
+}
+
+/* ===== 移动端：懒加载 + 全屏地图切换 ===== */
+function isMobileViewport() {
+  return window.innerWidth <= 768;
+}
+
+// 移动端打开全屏地图（首次点击才初始化 AMap，省流量省时间）
+async function openMobileMap() {
+  if (!isMobileViewport()) return;
+  mobileMapOpen = true;
+  document.getElementById('mapPanel').classList.add('map-open');
+  document.body.style.overflow = 'hidden';
+  if (!map) {
+    mobileMapLazyInit = true;
+    try {
+      await initMap();
+    } catch(e) {
+      console.warn('移动端地图初始化失败', e);
+    }
+  } else {
+    // 地图已存在：等容器可见后刷新尺寸
+    setTimeout(function() {
+      if (map && map.resize) { try { map.resize(); } catch(e) {} }
+      if (currentDay === 0) { renderOverviewMap(); } else { renderMap(currentDay); }
+    }, 120);
+  }
+}
+
+// 移动端关闭全屏地图，回到卡片流
+function closeMobileMap() {
+  mobileMapOpen = false;
+  document.getElementById('mapPanel').classList.remove('map-open');
+  document.body.style.overflow = '';
+}
+
+// 移动端 tab 切换或渲染地图时，若全屏地图未打开则跳过地图渲染（省性能）
+function ensureMobileMapRender(day) {
+  if (isMobileViewport() && !mobileMapOpen) return; // 卡片模式下不渲染地图
+  if (day === undefined) day = currentDay;
+  if (day === 0) { renderOverviewMap(); } else { renderMap(day); }
 }
 
 function showMapFallback() {
@@ -3756,6 +5250,16 @@ function drawDrivingRoute(dayData) {
       var dest = allPoints[idx + 1][0] + ',' + allPoints[idx + 1][1];
       var segStart = allPoints[idx];
       var segEnd = allPoints[idx + 1];
+      // 计算段起终点名称：第一段为 (起点 → POI[0])，之后为 (POI[i-1] → POI[i])
+      var segStartName, segEndName;
+      if (idx === 0) {
+        segStartName = (sl && sl.name) ? sl.name : '出发地';
+        segEndName = pois[0] && pois[0].name ? pois[0].name : '目的地';
+      } else {
+        segStartName = pois[idx-1] && pois[idx-1].name ? pois[idx-1].name : '地点' + idx;
+        segEndName = pois[idx] && pois[idx].name ? pois[idx].name : '地点' + (idx+1);
+      }
+      var segInfo = { startName: segStartName, endName: segEndName, startPos: segStart, endPos: segEnd, day: dayData.day };
 
       function finalize() {
         done++;
@@ -3767,36 +5271,215 @@ function drawDrivingRoute(dayData) {
 
       // 4种策略 + 延迟重试；全部失败才画虚线直线
       fetchDrivingSegWithRetry(origin, dest, function(path) {
-        drawRouteSegment(path, true);
+        drawRouteSegment(path, true, segInfo, idx);
         finalize();
       }, function() {
-        drawRouteSegment([segStart, segEnd], false);
+        drawRouteSegment([segStart, segEnd], false, segInfo, idx);
         finalize();
       });
     })(i);
   }
 }
 
-// 绘制单段路线：成功用绿色实线，失败用普通虚线直线（非大圆弧，视觉统一）
-function drawRouteSegment(points, isReal) {
+// 绘制单段路线：每段用不同颜色区分（按段索引取色），成功实线，失败用该段颜色的虚线直线
+// segInfo: { startName, endName, startPos, endPos } - 段起终点信息，用于点击放大
+/* 分段调色板：高对比 10 色，按段序号循环取色，直观区分每一天内的各路段 */
+var SEG_COLORS = ['#00b894','#0984e3','#e17055','#6c5ce7','#fdcb6e','#d63031','#00cec9','#fd79a8','#e84393','#74b9ff'];
+function drawRouteSegment(points, isReal, segInfo, segIndex) {
   try {
+    var segColor = SEG_COLORS[(segIndex || 0) % SEG_COLORS.length];
     var seg = new AMap.Polyline({
       path: points,
       isOutline: true,
       outlineColor: '#ffffff',
       borderWeight: isReal ? 3 : 1,
-      strokeColor: isReal ? '#00b894' : '#74b9ff',
+      strokeColor: segColor,
       strokeOpacity: isReal ? 0.9 : 0.6,
       strokeWeight: isReal ? 6 : 3,
       strokeStyle: isReal ? 'solid' : 'dashed',
       lineJoin: 'round',
       lineCap: 'round',
       showDir: isReal,
-      geodesic: false
+      geodesic: false,
+      cursor: 'pointer'
     });
     map.add(seg);
     window.routeLines.push(seg);
+
+    // 点击段路线：自动居中放大显示该段，并弹窗显示起终点 + 导航按钮
+    if (segInfo && segInfo.startPos && segInfo.endPos) {
+      seg.on('click', function() {
+        try {
+          if (currentInfoWindow) { try { map.clearInfoWindow(); } catch(e){} currentInfoWindow = null; }
+          var midPos = [
+            (segInfo.startPos[0] + segInfo.endPos[0]) / 2,
+            (segInfo.startPos[1] + segInfo.endPos[1]) / 2
+          ];
+          var navUrlSeg = 'https://uri.amap.com/navigation?from=' + segInfo.startPos[0] + ',' + segInfo.startPos[1] + ',' + encodeURIComponent(segInfo.startName)
+                        + '&to=' + segInfo.endPos[0] + ',' + segInfo.endPos[1] + ',' + encodeURIComponent(segInfo.endName)
+                        + '&mode=car&coordinate=wgs84&callnative=1';
+          var infoHtml =
+            '<div style="padding:10px 12px;min-width:220px;max-width:280px;font-size:11px;line-height:1.5;color:#2d3748;">' +
+              '<div style="font-size:11px;font-weight:700;color:#1a202c;margin-bottom:6px;display:flex;align-items:center;gap:6px;">' +
+                '<span style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:9px;padding:2px 7px;border-radius:8px;letter-spacing:0.5px;">本段行程</span>' +
+              '</div>' +
+              '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' +
+                '<div style="width:8px;height:8px;background:#00d4aa;border-radius:50%;flex-shrink:0;"></div>' +
+                '<div style="font-size:11px;color:#1a202c;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + escapeHtml(segInfo.startName) + '</div>' +
+              '</div>' +
+              '<div style="border-left:1.5px dashed #cbd5e1;height:10px;margin-left:3.5px;"></div>' +
+              '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">' +
+                '<div style="width:8px;height:8px;background:#f093fb;border-radius:50%;flex-shrink:0;"></div>' +
+                '<div style="font-size:11px;color:#1a202c;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + escapeHtml(segInfo.endName) + '</div>' +
+              '</div>' +
+              '<a href="' + navUrlSeg + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" ' +
+                'style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:6px 10px;background:linear-gradient(135deg,#00d4aa,#0fb8a0);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;font-family:inherit;box-sizing:border-box;">' +
+                '<svg class="icon" style="font-size:12px;"><use xlink:href="#icon-navigate"/></svg>导航到这段终点' +
+              '</a>' +
+              '<div class="seg-eta-area" style="margin-top:6px;padding-top:6px;border-top:1px dashed #e2e8f0;">' +
+                '<div style="font-size:10px;color:#718096;padding:1px 0;">正在定位，计算当前位置到终点距离...</div>' +
+              '</div>' +
+              '<div class="seg-weather-area" style="margin-top:4px;padding-top:4px;border-top:1px dashed #e2e8f0;"></div>' +
+            '</div>';
+
+          // 让地图自动适配整段路线（setFitView 传入该段 polyline，自动计算缩放级别与中心）
+          // maxZoom 14 防止路段短时过度放大；顶部预留 180px 给 InfoWindow，避免弹窗挤压导致二次平移
+          var fitDone = false;
+          function openSegInfo() {
+            if (fitDone) return;
+            fitDone = true;
+            /* 用唯一 ID + 字符串 content（AMap.InfoWindow 传 HTMLElement 时会克隆，原引用失效；
+               传字符串让 AMap 解析为真实 DOM，再用 ID 直接 getElementById 拿到正确的元素） */
+            var segId = 'seg_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8);
+            var uniqueHtml = infoHtml
+              .replace('class="seg-eta-area"', 'class="seg-eta-area" id="segEta-' + segId + '"')
+              .replace('class="seg-weather-area"', 'class="seg-weather-area" id="segWeather-' + segId + '"');
+            currentInfoWindow = new AMap.InfoWindow({
+              content: uniqueHtml,
+              offset: new AMap.Pixel(0, -20),
+              closeWhenClickMap: true
+            });
+            currentInfoWindow.open(map, midPos);
+            try { fillSegEta(segInfo.endPos[0], segInfo.endPos[1], segInfo.endName, 'segEta-' + segId); } catch(e) {}
+            try { fillSegWeather(segInfo, 'segWeather-' + segId); } catch(e) {}
+          }
+          try {
+            map.setFitView([seg], false, [180, 60, 60, 60], 14);
+            // 等动画结束再打开 InfoWindow（避免与平移动画竞争导致需要点两次）
+            setTimeout(openSegInfo, 380);
+          } catch(e2) {
+            try {
+              map.setCenter(midPos);
+              map.setZoom(11);
+            } catch(e3) {}
+            setTimeout(openSegInfo, 60);
+          }
+        } catch(e) { console.warn('点击路段出错', e); }
+      });
+      seg.on('mouseover', function() { seg.setOptions({ strokeWeight: (isReal ? 6 : 3) + 3 }); });
+      seg.on('mouseout', function() { seg.setOptions({ strokeWeight: isReal ? 6 : 3 }); });
+    }
   } catch(e) {}
+}
+
+/* 点击段路线：计算"当前位置 → 段终点"的距离/时间（距下一站式信息） */
+/* areaRef 兼容字符串 ID 或 DOM 引用（修复：字符串 content 时 AMap 解析后 ID 真实存在） */
+function fillSegEta(endLng, endLat, endName, areaRef) {
+  var area = (typeof areaRef === 'string') ? document.getElementById(areaRef) : areaRef;
+  if (!area) area = document.querySelector('.seg-eta-area');
+  if (!area) return;
+
+  var isSecure = location.protocol === 'https:' || location.protocol === 'file:' ||
+                 location.hostname === 'localhost' || location.hostname === '127.0.0.1' ||
+                 (typeof window.isSecureContext !== 'undefined' && window.isSecureContext);
+  if (!isSecure || !navigator.geolocation) {
+    area.innerHTML = '<div style="font-size:11px;color:#718096;padding:2px 0;">定位不可用（HTTP 环境或浏览器不支持），无法计算到终点距离</div>';
+    return;
+  }
+
+  navigator.geolocation.getCurrentPosition(function(pos) {
+    var origin = pos.coords.longitude.toFixed(6) + ',' + pos.coords.latitude.toFixed(6);
+    var dest = endLng + ',' + endLat;
+    var url = 'https://restapi.amap.com/v3/direction/driving?origin=' + origin + '&destination=' + dest +
+              '&key=' + AMAP_KEY + '&strategy=0&output=JSON&extensions=base';
+    fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.status === '1' && data.route && data.route.paths && data.route.paths.length > 0) {
+        var path = data.route.paths[0];
+        var distance = parseFloat(path.distance);
+        var duration = parseInt(path.duration);
+        var distStr = distance >= 1000 ? (distance / 1000).toFixed(1) + ' 公里' : Math.round(distance) + ' 米';
+        var durStr;
+        if (duration >= 3600) {
+          var h = Math.floor(duration / 3600), m = Math.round((duration % 3600) / 60);
+          durStr = h + '小时' + (m > 0 ? m + '分' : '');
+        } else {
+          durStr = Math.round(duration / 60) + '分钟';
+        }
+        var arrive = new Date(Date.now() + duration * 1000);
+        var arriveStr = String(arrive.getHours()).padStart(2, '0') + ':' + String(arrive.getMinutes()).padStart(2, '0');
+        area.innerHTML =
+          '<div style="font-size:11px;color:#718096;margin-bottom:4px;">📍 距终点（当前位置 → ' + escapeHtml(endName) + '）</div>' +
+          '<div style="font-size:15px;font-weight:700;color:#1a202c;">' + distStr +
+            '<span style="font-size:11px;font-weight:400;color:#718096;margin-left:8px;">预计 ' + durStr + ' · 到达 ' + arriveStr + '</span>' +
+          '</div>';
+      } else {
+        area.innerHTML = '<div style="font-size:11px;color:#e53e3e;padding:2px 0;">路线规划失败：' + escapeHtml(data.info || '未知错误') + '</div>';
+      }
+    }).catch(function() {
+      area.innerHTML = '<div style="font-size:11px;color:#e53e3e;padding:2px 0;">网络错误，无法获取路线</div>';
+    });
+  }, function(err) {
+    var msg = '定位失败';
+    if (err.code === 1) msg = '定位权限被拒绝';
+    else if (err.code === 2) msg = '定位不可用';
+    else if (err.code === 3) msg = '定位超时';
+    area.innerHTML = '<div style="font-size:11px;color:#718096;padding:2px 0;">' + msg + '，无法计算到终点距离</div>';
+  }, { enableHighAccuracy: false, timeout: 10000, maximumAge: 60000 });
+}
+
+/* 段路弹窗：展示该段沿途城市的天气。无缓存时主动调 Open-Meteo 加载，加载完即时刷新 DOM */
+/* 渲染沿途天气条目：与距下一站完全一致（✓/⚠ + 起点附近/途中/终点附近：天气 温度）
+   InfoWindow 内无 .eta-traffic 父级继承 font-size:10px → 用 inline style 强制小字 + 紧凑布局 */
+function renderSegWeatherItems(el, items, loading) {
+  var html = '<div style="font-size:10px;color:#718096;margin-bottom:3px;display:flex;align-items:center;gap:4px;line-height:1.4;">' +
+    '<span>🌤 沿途天气</span>' +
+    (loading ? '<span style="color:#4299e1;font-size:9px;">· 加载中...</span>' : '') +
+    '</div>';
+  if (items.length === 0) {
+    html += '<div style="font-size:10px;color:#a0aec0;padding:1px 0;line-height:1.4;">' +
+      (loading ? '正在获取沿途天气...' : '沿途天气获取失败') + '</div>';
+  } else {
+    items.forEach(function(w) {
+      var cls = w.isBad ? 'danger' : 'safe';
+      var icon = w.isBad ? '⚠' : '✓';
+      html += '<div class="eta-traffic-item ' + cls + '" style="font-size:10px;line-height:1.5;padding:1px 0;color:' +
+        (w.isBad ? '#e53e3e' : '#4a5568') + ';">' + icon + ' ' + escapeHtml(w.label) + '：' +
+        escapeHtml(w.weather || '') + ' ' + escapeHtml(w.temp) + '</div>';
+    });
+  }
+  el.innerHTML = html;
+}
+
+/* 段路弹窗沿途天气：完全复用 fetchRouteWeather（起点附近/途中/终点附近 三个点），
+   与距下一站面板的显示逻辑和 UI 完全一致 */
+function fillSegWeather(segInfo, areaRef) {
+  var el = (typeof areaRef === 'string') ? document.getElementById(areaRef) : areaRef;
+  if (!el) el = document.querySelector('.seg-weather-area');
+  if (!el || !segInfo || !segInfo.startPos || !segInfo.endPos) return;
+  var dest = { lng: segInfo.endPos[0], lat: segInfo.endPos[1], name: segInfo.endName || '终点' };
+  /* 先显示加载中 */
+  renderSegWeatherItems(el, [], true);
+  /* 与距下一站完全相同：起点附近 → 途中 → 终点附近 */
+  fetchRouteWeather(segInfo.startPos[0], segInfo.startPos[1], dest, function(weatherResults) {
+    if (!weatherResults || weatherResults.length === 0) {
+      renderSegWeatherItems(el, [], false);
+      return;
+    }
+    var items = weatherResults.map(function(w) {
+      return { label: w.label, weather: w.weather, temp: w.temp, isBad: w.isBad };
+    });
+    renderSegWeatherItems(el, items, false);
+  });
 }
 
 function drawPolyline(path, dashed) {
@@ -3971,6 +5654,7 @@ function openEditModal(day, index) {
 }
 function closeEditModal() { document.getElementById('editModal').classList.remove('show'); }
 
+
 // POI 地址搜索
 document.getElementById('editSearchBtn').addEventListener('click', searchPoiAddress);
 document.getElementById('editAddr').addEventListener('keydown', function(e) {
@@ -3981,7 +5665,7 @@ document.getElementById('editAutoFillBtn').addEventListener('click', autoFillPoi
 /* 隐藏字段用于存储搜索得到的坐标 */
 var editPoiLng = 0, editPoiLat = 0;
 
-/* 通过经纬度获取海拔（3个API备用，依次尝试，任一成功即返回） */
+/* 通过经纬度获取海拔（Open-Elevation API，免费无需Key） */
 function fetchAltitude(lat, lng, callback) {
   /* 3个海拔API备用，依次尝试，任一成功即返回 */
   var apis = [
@@ -4253,6 +5937,7 @@ function renderStaticMapGrid() {
 document.getElementById('imgPickerSearchBtn').addEventListener('click', function() {
   var kw = document.getElementById('imgPickerKeyword').value.trim();
   if (!kw) { showToast('请输入地点名称'); return; }
+  /* 搜索高德POI获取经纬度，然后重新渲染图片 */
   var btn = document.getElementById('imgPickerSearchBtn');
   btn.textContent = '搜索中...';
   var url = 'https://restapi.amap.com/v3/place/text?keywords=' + encodeURIComponent(kw) + '&key=' + AMAP_KEY + '&offset=1&page=1&extensions=base';
@@ -4618,19 +6303,26 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
   const imgUrl = document.getElementById('editImgUrl').value.trim();
   const imgFile = document.getElementById('editImgFile').files[0];
   if (imgFile) {
-    const reader = new FileReader();
-    await new Promise(resolve => {
-      reader.onload = () => { poi.img = reader.result; resolve(); };
-      reader.readAsDataURL(imgFile);
+    // 自动压缩后保存，控制云端文件体积
+    compressImageFile(imgFile, function(b64) {
+      poi.img = b64;
+      finishSavePoi();
+    }, function(err) {
+      showToast('图片处理失败：' + err);
     });
+    return;
   } else if (imgUrl) {
     poi.img = imgUrl;
   }
-  saveData();
-  closeEditModal();
-  renderTimeline(day);
-  renderMap(day);
-  showToast('保存成功');
+  finishSavePoi();
+
+  function finishSavePoi() {
+    saveData();
+    closeEditModal();
+    renderTimeline(day);
+    ensureMobileMapRender(day);
+    showToast('保存成功');
+  }
 });
 
 function deletePOI(day, index) {
@@ -4645,7 +6337,7 @@ function deletePOI(day, index) {
   });
   saveData();
   renderTimeline(day);
-  renderMap(day);
+  ensureMobileMapRender(day);
   updateBadges();
   showToast('已删除');
 }
@@ -4656,7 +6348,7 @@ document.getElementById('addPOIBtn').addEventListener('click', () => {
   trip.days[currentDay - 1].pois.push(newPOI);
   saveData();
   renderTimeline(currentDay);
-  renderMap(currentDay);
+  ensureMobileMapRender(currentDay);
   showToast('已添加新 POI，请点击编辑修改');
 });
 
@@ -4730,7 +6422,7 @@ document.getElementById('startForm').addEventListener('submit', function(e) {
   saveData();
   closeStartModal();
   renderTimeline(day);
-  renderMap(day);
+  ensureMobileMapRender(day);
   showToast('起点已更新，路线已重新规划');
 });
 
@@ -4823,7 +6515,8 @@ function openExpenseEdit(id, presetDay, presetPoiIndex) {
   function fillPoi(day) {
     const d = trip.days.find(x => x.day == day);
     const poiSel = document.getElementById('expPoi');
-    poiSel.innerHTML = '<option value="-1">不关联</option>' + (d.pois.map((p, i) => '<option value="' + i + '">' + escapeHtml(p.name) + '</option>').join(''));
+    /* 容错：总览页 currentDay=0 时找不到对应天（day 从 1 开始），避免 d.pois 崩溃导致弹窗无法打开 */
+    poiSel.innerHTML = '<option value="-1">不关联</option>' + ((d && d.pois) ? d.pois.map((p, i) => '<option value="' + i + '">' + escapeHtml(p.name) + '</option>').join('') : '');
   }
   daySel.onchange = () => fillPoi(parseInt(daySel.value));
 
@@ -4943,7 +6636,7 @@ function exportFullHTML() {
   // 获取当前页面完整 HTML，把行程数据嵌入进去
   var html = document.documentElement.outerHTML;
   // 在 <script> 开头插入嵌入数据标记
-  var embedTag = '<scr' + 'ipt></scr' + 'ipt>';
+  var embedTag = '<scr' + 'ipt>window.__EMBEDDED_TRIP__ = ' + JSON.stringify(JSON.stringify(trip)) + ';</scr' + 'ipt>';
   // 在 body 开头插入
   html = html.replace('<body>', '<body>\n' + embedTag);
   
@@ -5018,6 +6711,149 @@ document.getElementById('resetBtn').addEventListener('click', function() {
 /* ====================== 表格编辑 ====================== */
 var tableEditData = null;
 
+/* ===== Day 编辑（总览卡片编辑按钮触发） ===== */
+var dayEditCurrentDay = null;
+
+function openDayEditModal(day) {
+  var d = trip.days.find(function(x) { return x.day === day; });
+  if (!d) return;
+  dayEditCurrentDay = day;
+  document.getElementById('dayEditNum').textContent = day;
+  document.getElementById('dayEditTitle').value = d.title || ('DAY ' + day);
+  document.getElementById('dayEditDesc').value = d.desc || '';
+  updateDayEditCoverPreview(d.cover || '');
+  document.getElementById('dayEditModal').style.display = 'flex';
+}
+
+function closeDayEditModal() {
+  document.getElementById('dayEditModal').style.display = 'none';
+  dayEditCurrentDay = null;
+  try { document.getElementById('dayEditCoverFile').value = ''; } catch(e) {}
+}
+
+function updateDayEditCoverPreview(src) {
+  var preview = document.getElementById('dayEditCoverPreview');
+  if (src) {
+    preview.style.backgroundImage = "url('" + src.replace(/'/g, "\\'") + "')";
+    preview.innerHTML = '';
+  } else {
+    preview.style.backgroundImage = '';
+    preview.innerHTML =
+      '<div class="day-edit-cover-placeholder">' +
+        '<svg class="icon"><use xlink:href="#icon-image"/></svg>' +
+        '<span>点击上传封面</span>' +
+      '</div>';
+  }
+}
+
+function onDayEditCoverSelected(input) {
+  var file = input.files && input.files[0];
+  if (!file) return;
+  compressImageFile(file, function(b64) {
+    updateDayEditCoverPreview(b64);
+  }, function(err) {
+    showToast('图片处理失败：' + err);
+  });
+}
+
+/* ====================== 图片上传自动压缩（统一入口） ====================== */
+/* 目标：上传图片自动压缩为 JPEG，控制云端文件体积，同时保证手机/电脑展示质量。
+   参数：file（File 对象）、onDone(压缩后的 base64)、onError(错误回调)
+   策略：
+   - 最大宽度 1280px（手机 2x ≈ 750~900px 物理像素，电脑 1x ≈ 1280px，足够清晰）
+   - JPEG 质量 0.82（视觉无损，体积约为原始 10%~20%）
+   - PNG 透明 → 白底合成（避免黑色背景）
+*/
+function compressImageFile(file, onDone, onError) {
+  if (!file || !file.type || file.type.indexOf('image/') !== 0) {
+    onError('请选择图片文件');
+    return;
+  }
+  // 小图片（< 80KB 且已非超大尺寸）直接原样返回，避免无损图被转 JPEG 降低质量
+  var reader = new FileReader();
+  reader.onload = function(e) {
+    var img = new Image();
+    img.onload = function() {
+      try {
+        var MAX_W = 1280;
+        var QUALITY = 0.82;
+        var w = img.naturalWidth, h = img.naturalHeight;
+        var isSmall = file.size <= 80 * 1024 && w <= MAX_W;
+        if (isSmall) {
+          // 保留原始（含 PNG 透明，小图不转格式）
+          onDone(e.target.result);
+          return;
+        }
+        var canvas = document.createElement('canvas');
+        canvas.width = w;
+        canvas.height = h;
+        var ctx = canvas.getContext('2d');
+        // 若为 PNG（可能透明），先铺白底
+        if (file.type === 'image/png' || file.type === 'image/webp') {
+          ctx.fillStyle = '#ffffff';
+          ctx.fillRect(0, 0, canvas.width, canvas.height);
+        }
+        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+        // 等比缩放到最大宽度
+        if (w > MAX_W) {
+          var scale = MAX_W / w;
+          var cw = Math.round(w * scale);
+          var ch = Math.round(h * scale);
+          var c2 = document.createElement('canvas');
+          c2.width = cw; c2.height = ch;
+          var ctx2 = c2.getContext('2d');
+          if (file.type === 'image/png' || file.type === 'image/webp') {
+            ctx2.fillStyle = '#ffffff';
+            ctx2.fillRect(0, 0, cw, ch);
+          }
+          ctx2.drawImage(canvas, 0, 0, cw, ch);
+          canvas = c2;
+        }
+        var outType = (file.type === 'image/png' || file.type === 'image/webp') ? 'image/jpeg' : file.type;
+        var b64 = canvas.toDataURL(outType, QUALITY);
+        // 若压缩后反而更大（罕见），回退原图
+        if (b64.length > e.target.result.length) b64 = e.target.result;
+        onDone(b64);
+      } catch(err) {
+        onError(String(err));
+      }
+    };
+    img.onerror = function() { onError('图片解析失败'); };
+    img.src = e.target.result;
+  };
+  reader.onerror = function() { onError('文件读取失败'); };
+  reader.readAsDataURL(file);
+}
+
+/* 图片上传自动压缩（统一入口） */
+/* 参数：file（File 对象）、onDone(压缩后的 base64)、onError(错误回调) */
+
+function saveDayEdit() {
+  if (!dayEditCurrentDay) return;
+  var d = trip.days.find(function(x) { return x.day === dayEditCurrentDay; });
+  if (!d) return;
+  d.title = (document.getElementById('dayEditTitle').value || ('DAY ' + dayEditCurrentDay)).trim();
+  d.desc = document.getElementById('dayEditDesc').value || '';
+  var bg = document.getElementById('dayEditCoverPreview').style.backgroundImage;
+  if (bg && bg !== 'none' && bg.indexOf('url(') >= 0) {
+    var m = bg.match(/url\("?([^")]+)"?\)/);
+    if (m) {
+      var url = m[1].replace(/\\'/g, "'");
+      d.cover = url;
+    }
+  } else {
+    d.cover = '';
+  }
+  saveData();
+  showToast('保存成功');
+  closeDayEditModal();
+  if (currentDay === dayEditCurrentDay) {
+    renderTimeline(currentDay);
+  } else {
+    try { renderOverviewHome(); } catch(e) {}
+  }
+}
+
 function openTableEdit() {
   // 深拷贝当前行程数据
   tableEditData = JSON.parse(JSON.stringify(trip));
@@ -5062,48 +6898,99 @@ function renderTableEdit() {
     html += '</div>';
 
     // 起点信息
-    html += '<div style="padding:10px 16px;background:#f8f9fa;border-bottom:1px solid #eee;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">';
-    html += '<span style="font-weight:600;font-size:13px;color:#666;"><svg class="icon"><use xlink:href="#icon-flag"/></svg>起点：</span>';
-    html += '<input type="text" class="tbl-start-name" value="' + escapeHtml(d.startLocation ? d.startLocation.name : '') + '" placeholder="起点名称" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;width:150px;">';
-    html += '<input type="text" class="tbl-start-addr" placeholder="输入地址搜索" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;width:150px;">';
-    html += '<button class="tbl-start-search" data-day-idx="' + dayIdx + '" style="padding:4px 10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:13px;background:#fff;">搜索</button>';
-    html += '<span style="font-size:12px;color:#888;">经度：</span><input type="number" step="0.0001" class="tbl-start-lng" value="' + (d.startLocation ? d.startLocation.lng : '') + '" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;width:100px;">';
-    html += '<span style="font-size:12px;color:#888;">纬度：</span><input type="number" step="0.0001" class="tbl-start-lat" value="' + (d.startLocation ? d.startLocation.lat : '') + '" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;width:100px;">';
+    html += '<div class="tbl-start-block" style="padding:10px 12px;background:#f8f9fa;border-bottom:1px solid #eee;display:flex;gap:12px;align-items:center;flex-wrap:wrap;">';
+    html += '<span style="font-weight:600;font-size:13px;color:#666;flex:0 0 100%;margin-bottom:2px;"><svg class="icon"><use xlink:href="#icon-flag"/></svg>起点</span>';
+    html += '<input type="text" class="tbl-start-name" value="' + escapeHtml(d.startLocation ? d.startLocation.name : '') + '" placeholder="起点名称" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;flex:1 1 140px;min-width:0;">';
+    html += '<input type="text" class="tbl-start-addr" placeholder="输入地址搜索" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;flex:1 1 140px;min-width:0;">';
+    html += '<button class="tbl-start-search" data-day-idx="' + dayIdx + '" style="padding:4px 10px;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:13px;background:#fff;flex:0 0 auto;">搜索</button>';
+    html += '<div style="display:flex;gap:6px;flex:1 1 100%;">';
+    html += '<span style="font-size:12px;color:#888;flex:0 0 auto;line-height:30px;">经度：</span><input type="number" step="0.0001" class="tbl-start-lng" value="' + (d.startLocation ? d.startLocation.lng : '') + '" placeholder="lng" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;flex:1 1 auto;min-width:0;">';
+    html += '<span style="font-size:12px;color:#888;flex:0 0 auto;line-height:30px;">纬度：</span><input type="number" step="0.0001" class="tbl-start-lat" value="' + (d.startLocation ? d.startLocation.lat : '') + '" placeholder="lat" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;font-size:13px;flex:1 1 auto;min-width:0;">';
+    html += '</div>';
     html += '</div>';
 
-    // POI 表格
-    html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
-    html += '<thead><tr style="background:#f0f0f0;">';
-    html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:60px;">时间</th>';
-    html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:80px;">类型</th>';
-    html += '<th style="padding:8px;border-bottom:2px solid #ddd;">名称</th>';
-    html += '<th style="padding:8px;border-bottom:2px solid #ddd;">简短描述</th>';
-    html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:200px;">地址搜索</th>';
-    html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:80px;">海拔</th>';
-    html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:90px;">图片</th>';
-    html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:140px;">预算（过路费/费用）</th>';
-    html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:120px;">操作</th>';
-    html += '</tr></thead><tbody>';
-
-    d.pois.forEach(function(p, poiIdx) {
-      html += '<tr class="tbl-poi-row" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" data-lng="' + (p.lng || 0) + '" data-lat="' + (p.lat || 0) + '">';
-      html += '<td style="padding:6px;border-bottom:1px solid #eee;"><input type="text" class="tbl-poi-time" value="' + escapeHtml(p.time) + '" style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;"></td>';
-      html += '<td style="padding:6px;border-bottom:1px solid #eee;"><select class="tbl-poi-type" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;width:100%;">';
-      typeOptions.forEach(function(t) {
-        html += '<option value="' + t + '"' + (p.type === t ? ' selected' : '') + '>' + typeNames[t] + '</option>';
+    // POI 表格 / 卡片列表：手机端用卡片版（每行 POI 一个卡片，纵向堆叠）
+    var useCardView = window.innerWidth <= 768;
+    if (useCardView) {
+      html += '<div class="tbl-poi-list" style="padding:10px;">';
+      d.pois.forEach(function(p, poiIdx) {
+        html += '<div class="tbl-poi-row tbl-poi-card" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" data-lng="' + (p.lng || 0) + '" data-lat="' + (p.lat || 0) + '" style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px;margin-bottom:10px;box-shadow:0 1px 4px rgba(0,0,0,.04);">';
+        // 行 1：序号 + 时间 + 类型 + 删除
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:10px;">';
+        html += '<span style="background:' + color + ';color:#fff;font-size:11px;font-weight:700;padding:3px 9px;border-radius:10px;flex:none;">' + (poiIdx + 1) + '</span>';
+        html += '<input type="text" class="tbl-poi-time" value="' + escapeHtml(p.time) + '" placeholder="07:30" style="flex:0 0 80px;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;">';
+        html += '<select class="tbl-poi-type" style="flex:1;min-width:0;padding:6px 8px;border:1px solid #ddd;border-radius:6px;font-size:13px;">';
+        typeOptions.forEach(function(t) {
+          html += '<option value="' + t + '"' + (p.type === t ? ' selected' : '') + '>' + typeNames[t] + '</option>';
+        });
+        html += '</select>';
+        html += '<button class="tbl-del-poi" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" style="flex:none;background:#fff5f5;color:#e53e3e;border:1px solid #fed7d7;padding:6px 10px;border-radius:6px;cursor:pointer;font-size:12px;">删除</button>';
+        html += '</div>';
+        // 行 2：名称 + 描述
+        html += '<input type="text" class="tbl-poi-name" value="' + escapeHtml(p.name) + '" placeholder="名称" style="width:100%;padding:8px 10px;border:1px solid #ddd;border-radius:6px;font-size:14px;font-weight:500;margin-bottom:6px;">';
+        html += '<input type="text" class="tbl-poi-desc" value="' + escapeHtml(p.desc) + '" placeholder="简短描述" style="width:100%;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;color:#4a5568;margin-bottom:8px;">';
+        // 行 3：地址 + 搜索 + 海拔
+        html += '<div style="display:flex;gap:6px;margin-bottom:8px;flex-wrap:wrap;">';
+        html += '<input type="text" class="tbl-poi-addr" placeholder="输入地址搜索" style="flex:1 1 200px;min-width:0;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;">';
+        html += '<button class="tbl-poi-search" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" style="flex:none;background:#4299e1;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;"><svg class="icon" style="font-size:13px;"><use xlink:href="#icon-search"/></svg></button>';
+        html += '<input type="number" step="1" class="tbl-poi-altitude" value="' + (p.altitude || 0) + '" placeholder="海拔(米)" style="flex:0 0 90px;padding:6px 10px;border:1px solid #ddd;border-radius:6px;font-size:12px;">';
+        html += '</div>';
+        // 行 4：图片预览 + 选图
+        html += '<div style="display:flex;align-items:center;gap:8px;margin-bottom:8px;">';
+        html += '<div class="tbl-poi-img-wrap" style="width:60px;height:45px;border-radius:6px;overflow:hidden;background:#f0f0f0;flex:none;position:relative;">' + (p.img ? '<img src="' + escapeHtml(p.img) + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentNode.style.background=\'#f0f0f0\';">' : '<span style="font-size:10px;color:#aaa;line-height:45px;">无图</span>') + '</div>';
+        html += '<button class="tbl-poi-pickimg" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" style="flex:0 0 auto;background:#ed8936;color:#fff;border:none;padding:6px 12px;border-radius:6px;cursor:pointer;font-size:12px;">选择图片</button>';
+        // 行 5：预算 + ETA
+        html += '<div style="display:flex;gap:6px;flex:1;min-width:0;align-items:center;">';
+        html += '<div style="flex:1;min-width:0;"><label style="font-size:10px;color:#888;">过路费¥</label><input type="number" step="0.01" class="tbl-poi-toll" value="' + (p.toll || 0) + '" placeholder="0" style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:11px;"></div>';
+        html += '<div style="flex:1;min-width:0;"><label style="font-size:10px;color:#888;">费用¥</label><input type="number" step="0.01" class="tbl-poi-cost" value="' + (p.cost || 0) + '" placeholder="0" style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:11px;"></div>';
+        html += '</div>';
+        html += '</div>';
+        // 行 6：ETA + 排序按钮
+        html += '<div style="display:flex;align-items:center;gap:8px;justify-content:space-between;">';
+        html += '<div class="tbl-poi-eta" style="font-size:11px;color:#0984e3;flex:1;min-width:0;">' + (p.etaText || '未计算') + '</div>';
+        html += '<div style="flex:none;">';
+        html += '<button class="tbl-up-poi" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" title="上移" style="background:#edf2f7;color:#4a5568;border:1px solid #e2e8f0;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:2px;">↑</button>';
+        html += '<button class="tbl-down-poi" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" title="下移" style="background:#edf2f7;color:#4a5568;border:1px solid #e2e8f0;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;">↓</button>';
+        html += '</div>';
+        html += '</div>';
+        html += '</div>';
       });
-      html += '</select></td>';
-      html += '<td style="padding:6px;border-bottom:1px solid #eee;"><input type="text" class="tbl-poi-name" value="' + escapeHtml(p.name) + '" style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;"></td>';
-      html += '<td style="padding:6px;border-bottom:1px solid #eee;"><input type="text" class="tbl-poi-desc" value="' + escapeHtml(p.desc) + '" style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;"></td>';
-      html += '<td style="padding:6px;border-bottom:1px solid #eee;"><div style="display:flex;gap:4px;"><input type="text" class="tbl-poi-addr" placeholder="搜索地址" style="flex:1;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;"><button class="tbl-poi-search" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:12px;background:#fff;"><svg class="icon" style="font-size:12px;"><use xlink:href="#icon-search"/></svg></button></div></td>';
-      html += '<td style="padding:6px;border-bottom:1px solid #eee;"><input type="number" step="1" class="tbl-poi-altitude" value="' + (p.altitude || 0) + '" placeholder="米" style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;"></td>';
-      html += '<td style="padding:6px;border-bottom:1px solid #eee;text-align:center;"><div class="tbl-poi-img-wrap" style="width:60px;height:45px;border-radius:4px;overflow:hidden;background:#f0f0f0;margin:0 auto 4px;position:relative;">' + (p.img ? '<img src="' + escapeHtml(p.img) + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentNode.style.background=\'#f0f0f0\';">' : '<span style="font-size:10px;color:#aaa;line-height:45px;">无图</span>') + '</div><button class="tbl-poi-pickimg" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" style="background:#ed8936;color:#fff;border:none;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;">选图</button></td>';
-      html += '<td style="padding:6px;border-bottom:1px solid #eee;font-size:11px;"><div style="margin-bottom:4px;"><label style="color:#888;font-size:10px;">过路费¥</label><input type="number" step="0.01" class="tbl-poi-toll" value="' + (p.toll || 0) + '" placeholder="0" style="width:60px;padding:2px 4px;border:1px solid #ddd;border-radius:3px;font-size:11px;"></div><div style="margin-bottom:4px;"><label style="color:#888;font-size:10px;">预计费用¥</label><input type="number" step="0.01" class="tbl-poi-cost" value="' + (p.cost || 0) + '" placeholder="0" style="width:60px;padding:2px 4px;border:1px solid #ddd;border-radius:3px;font-size:11px;"></div><div class="tbl-poi-eta" style="font-size:10px;color:#0984e3;">' + (p.etaText || '未计算') + '</div></td>';
-      html += '<td style="padding:6px;border-bottom:1px solid #eee;text-align:center;white-space:nowrap;"><button class="tbl-up-poi" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" title="上移" style="background:#4299e1;color:#fff;border:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:2px;">↑</button><button class="tbl-down-poi" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" title="下移" style="background:#4299e1;color:#fff;border:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:2px;">↓</button><button class="tbl-del-poi" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" style="background:#ff6b81;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;">删除</button></td>';
-      html += '</tr>';
-    });
+      html += '</div>';
+    } else {
+      // PC 端保留原表格（可横向滚动）
+      html += '<table style="width:100%;border-collapse:collapse;font-size:13px;">';
+      html += '<thead><tr style="background:#f0f0f0;">';
+      html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:60px;">时间</th>';
+      html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:80px;">类型</th>';
+      html += '<th style="padding:8px;border-bottom:2px solid #ddd;">名称</th>';
+      html += '<th style="padding:8px;border-bottom:2px solid #ddd;">简短描述</th>';
+      html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:200px;">地址搜索</th>';
+      html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:80px;">海拔</th>';
+      html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:90px;">图片</th>';
+      html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:140px;">预算（过路费/费用）</th>';
+      html += '<th style="padding:8px;border-bottom:2px solid #ddd;width:120px;">操作</th>';
+      html += '</tr></thead><tbody>';
 
-    html += '</tbody></table>';
+      d.pois.forEach(function(p, poiIdx) {
+        html += '<tr class="tbl-poi-row" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" data-lng="' + (p.lng || 0) + '" data-lat="' + (p.lat || 0) + '">';
+        html += '<td style="padding:6px;border-bottom:1px solid #eee;"><input type="text" class="tbl-poi-time" value="' + escapeHtml(p.time) + '" style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;"></td>';
+        html += '<td style="padding:6px;border-bottom:1px solid #eee;"><select class="tbl-poi-type" style="padding:4px 6px;border:1px solid #ddd;border-radius:4px;width:100%;">';
+        typeOptions.forEach(function(t) {
+          html += '<option value="' + t + '"' + (p.type === t ? ' selected' : '') + '>' + typeNames[t] + '</option>';
+        });
+        html += '</select></td>';
+        html += '<td style="padding:6px;border-bottom:1px solid #eee;"><input type="text" class="tbl-poi-name" value="' + escapeHtml(p.name) + '" style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;"></td>';
+        html += '<td style="padding:6px;border-bottom:1px solid #eee;"><input type="text" class="tbl-poi-desc" value="' + escapeHtml(p.desc) + '" style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;"></td>';
+        html += '<td style="padding:6px;border-bottom:1px solid #eee;"><div style="display:flex;gap:4px;"><input type="text" class="tbl-poi-addr" placeholder="搜索地址" style="flex:1;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;"><button class="tbl-poi-search" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" style="padding:4px 8px;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:12px;background:#fff;"><svg class="icon" style="font-size:12px;"><use xlink:href="#icon-search"/></svg></button></div></td>';
+        html += '<td style="padding:6px;border-bottom:1px solid #eee;"><input type="number" step="1" class="tbl-poi-altitude" value="' + (p.altitude || 0) + '" placeholder="米" style="width:100%;padding:4px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;"></td>';
+        html += '<td style="padding:6px;border-bottom:1px solid #eee;text-align:center;"><div class="tbl-poi-img-wrap" style="width:60px;height:45px;border-radius:4px;overflow:hidden;background:#f0f0f0;margin:0 auto 4px;position:relative;">' + (p.img ? '<img src="' + escapeHtml(p.img) + '" style="width:100%;height:100%;object-fit:cover;" onerror="this.style.display=\'none\';this.parentNode.style.background=\'#f0f0f0\';">' : '<span style="font-size:10px;color:#aaa;line-height:45px;">无图</span>') + '</div><button class="tbl-poi-pickimg" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" style="background:#ed8936;color:#fff;border:none;padding:3px 8px;border-radius:4px;cursor:pointer;font-size:11px;">选图</button></td>';
+        html += '<td style="padding:6px;border-bottom:1px solid #eee;font-size:11px;"><div style="margin-bottom:4px;"><label style="color:#888;font-size:10px;">过路费¥</label><input type="number" step="0.01" class="tbl-poi-toll" value="' + (p.toll || 0) + '" placeholder="0" style="width:60px;padding:2px 4px;border:1px solid #ddd;border-radius:3px;font-size:11px;"></div><div style="margin-bottom:4px;"><label style="color:#888;font-size:10px;">预计费用¥</label><input type="number" step="0.01" class="tbl-poi-cost" value="' + (p.cost || 0) + '" placeholder="0" style="width:60px;padding:2px 4px;border:1px solid #ddd;border-radius:3px;font-size:11px;"></div><div class="tbl-poi-eta" style="font-size:10px;color:#0984e3;">' + (p.etaText || '未计算') + '</div></td>';
+        html += '<td style="padding:6px;border-bottom:1px solid #eee;text-align:center;white-space:nowrap;"><button class="tbl-up-poi" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" title="上移" style="background:#4299e1;color:#fff;border:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:2px;">↑</button><button class="tbl-down-poi" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" title="下移" style="background:#4299e1;color:#fff;border:none;padding:4px 6px;border-radius:4px;cursor:pointer;font-size:12px;margin-right:2px;">↓</button><button class="tbl-del-poi" data-day-idx="' + dayIdx + '" data-poi-idx="' + poiIdx + '" style="background:#ff6b81;color:#fff;border:none;padding:4px 8px;border-radius:4px;cursor:pointer;font-size:12px;">删除</button></td>';
+        html += '</tr>';
+      });
+
+      html += '</tbody></table>';
+    }
     html += '<div style="padding:8px 16px;background:#fafafa;border-top:1px solid #eee;">';
     html += '<button class="tbl-add-poi" data-day-idx="' + dayIdx + '" style="background:var(--accent);color:#fff;border:none;padding:6px 14px;border-radius:6px;cursor:pointer;font-size:13px;">+ 添加景点/美食/住宿</button>';
     html += '</div>';
@@ -5167,14 +7054,17 @@ function collectTableEditInputs() {
 function autoCalcRouteForTableRow(row, dayIdx, poiIdx, destLng, destLat) {
   var etaEl = row.querySelector('.tbl-poi-eta');
   if (!etaEl) return;
+  // 找上一站：同一天的前一个POI；若当前是某天第1个POI，则用当天的起点
   var prevLng = null, prevLat = null, prevName = '起点';
   if (poiIdx > 0) {
+    // 同一天的前一行POI
     var prevRow = row.previousElementSibling;
     if (prevRow && prevRow.classList.contains('tbl-poi-row')) {
       prevLng = parseFloat(prevRow.getAttribute('data-lng'));
       prevLat = parseFloat(prevRow.getAttribute('data-lat'));
     }
   } else {
+    // 当天第1个POI：用当天起点
     var block = row.closest('.table-day-block');
     if (block) {
       var startLngEl = block.querySelector('.tbl-start-lng');
@@ -5184,6 +7074,7 @@ function autoCalcRouteForTableRow(row, dayIdx, poiIdx, destLng, destLat) {
         prevLat = parseFloat(startLatEl.value);
       }
     }
+    // 跨天：如果没有当天起点，尝试用前一天最后一个POI
     if (!prevLng || !prevLat) {
       if (dayIdx > 0) {
         var prevDay = tableEditData.days[dayIdx - 1];
@@ -5196,16 +7087,19 @@ function autoCalcRouteForTableRow(row, dayIdx, poiIdx, destLng, destLat) {
       }
     }
   }
+  // 上一站坐标无效：无法计算
   if (!prevLng || !prevLat || (prevLng === 0 && prevLat === 0)) {
     etaEl.innerHTML = '未计算（无上一站坐标）';
     etaEl.style.color = '#e17055';
     return;
   }
+  // 当前坐标无效
   if (!destLng || !destLat || (destLng === 0 && destLat === 0)) {
     etaEl.innerHTML = '未计算（当前坐标无效）';
     etaEl.style.color = '#e17055';
     return;
   }
+  // 防抖：仅成功时才标记，失败不标记以便重试
   if (etaEl.getAttribute('data-last-dest') === (destLng + ',' + destLat) && etaEl.getAttribute('data-last-status') === 'ok') return;
   etaEl.innerHTML = '⏳ 路线计算中...';
   etaEl.style.color = '#fdcb6e';
@@ -5230,6 +7124,7 @@ function autoCalcRouteForTableRow(row, dayIdx, poiIdx, destLng, destLat) {
           var distance = parseFloat(path.distance);
           var duration = parseInt(path.duration);
           var tolls = parseFloat(path.tolls) || 0;
+          // 格式化显示
           var distStr = distance >= 1000 ? (distance / 1000).toFixed(1) + 'km' : distance + 'm';
           var durStr = '';
           if (duration >= 3600) {
@@ -5244,6 +7139,7 @@ function autoCalcRouteForTableRow(row, dayIdx, poiIdx, destLng, destLat) {
           // 成功才标记防抖
           etaEl.setAttribute('data-last-dest', destLng + ',' + destLat);
           etaEl.setAttribute('data-last-status', 'ok');
+          // 自动填入过路费（只填非0的）
           if (tolls > 0) {
             var tollInput = row.querySelector('.tbl-poi-toll');
             if (tollInput) {
@@ -5251,6 +7147,7 @@ function autoCalcRouteForTableRow(row, dayIdx, poiIdx, destLng, destLat) {
               showToast('已自动填入过路费：¥' + tolls);
             }
           }
+          // 将路线信息存入POI的etaText字段，保存时会持久化
           var poi = tableEditData.days[dayIdx].pois[poiIdx];
           if (poi) {
             poi.etaText = '🚗 ' + distStr + ' · ⏱ ' + durStr + (tolls > 0 ? ' · 💰¥' + tolls : '');
@@ -5324,11 +7221,11 @@ function renderBudgetSummary() {
   var remain = totalBudget - totalExpense;
   var remainColor = remain >= 0 ? '#16a34a' : '#dc2626';
   el.innerHTML =
-    '<div style="padding:8px 12px;background:#fff;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#888;">总预算</div><div style="font-size:18px;font-weight:700;color:#2c5282;">¥' + totalBudget.toFixed(2) + '</div></div>' +
-    '<div style="padding:8px 12px;background:#fff;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#888;">过路费合计</div><div style="font-size:18px;font-weight:700;color:#dd6b20;">¥' + totalTolls.toFixed(2) + '</div></div>' +
-    '<div style="padding:8px 12px;background:#fff;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#888;">住宿餐饮等</div><div style="font-size:18px;font-weight:700;color:#805ad5;">¥' + totalCost.toFixed(2) + '</div></div>' +
-    '<div style="padding:8px 12px;background:#fff;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#888;">预计总支出</div><div style="font-size:18px;font-weight:700;color:#e53e3e;">¥' + totalExpense.toFixed(2) + '</div></div>' +
-    '<div style="padding:8px 12px;background:#fff;border-radius:8px;text-align:center;"><div style="font-size:11px;color:#888;">结余</div><div style="font-size:18px;font-weight:700;color:' + remainColor + ';">¥' + remain.toFixed(2) + '</div></div>';
+    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">总预算</div><div style="font-size:15px;font-weight:700;color:#2c5282;">¥' + totalBudget.toFixed(2) + '</div></div>' +
+    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">过路费合计</div><div style="font-size:15px;font-weight:700;color:#dd6b20;">¥' + totalTolls.toFixed(2) + '</div></div>' +
+    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">住宿餐饮等</div><div style="font-size:15px;font-weight:700;color:#805ad5;">¥' + totalCost.toFixed(2) + '</div></div>' +
+    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">预计总支出</div><div style="font-size:15px;font-weight:700;color:#e53e3e;">¥' + totalExpense.toFixed(2) + '</div></div>' +
+    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">结余</div><div style="font-size:15px;font-weight:700;color:' + remainColor + ';">¥' + remain.toFixed(2) + '</div></div>';
 }
 
 /* 一键计算所有POI的驾车路线（失败项最后统一重试一次） */
@@ -5534,7 +7431,6 @@ function bindTableEvents() {
                 fetchAltitude(lat, lng, function(alt) {
                   if (alt !== null && alt > 0) {
                     row.querySelector('.tbl-poi-altitude').value = alt;
-                    showToast('已填入海拔：' + alt + '米');
                   }
                 });
                 // 自动计算与上一站的驾车路线（时间/里程/过路费）
@@ -5755,7 +7651,7 @@ function handleTableSave() {
   currentDay = 1;
   initTabs();
   renderTimeline(currentDay);
-  renderMap(currentDay);
+  ensureMobileMapRender(currentDay);
   updateBadges();
   closeTableEdit();
   showToast('已保存并同步到主界面');
@@ -5935,8 +7831,74 @@ document.getElementById('weatherBtn').addEventListener('click', openWeatherModal
 document.getElementById('syncSettingsBtn').addEventListener('click', openTokenModal);
 // tableEditModal 不再点击外部关闭，避免误触丢失编辑内容
 
+// Day 编辑模态框：上传封面的 file input + 三个辅助按钮
+(function bindDayEdit() {
+  var coverFile = document.getElementById('dayEditCoverFile');
+  if (coverFile) coverFile.addEventListener('change', function() { onDayEditCoverSelected(this); });
+  var saveBtn = document.getElementById('dayEditSaveBtn');
+  if (saveBtn) saveBtn.addEventListener('click', saveDayEdit);
+  var useFirstPoi = document.getElementById('dayEditUseFirstPoi');
+  if (useFirstPoi) useFirstPoi.addEventListener('click', function() {
+    if (!dayEditCurrentDay) return;
+    var d = trip.days.find(function(x) { return x.day === dayEditCurrentDay; });
+    if (!d || !d.pois || !d.pois.length) { showToast('该天暂无 POI'); return; }
+    var img = null;
+    for (var i = 0; i < d.pois.length; i++) { if (d.pois[i].img) { img = d.pois[i].img; break; } }
+    if (!img) { showToast('该天的 POI 没有图片'); return; }
+    updateDayEditCoverPreview(img);
+  });
+  var removeCover = document.getElementById('dayEditRemoveCover');
+  if (removeCover) removeCover.addEventListener('click', function() {
+    updateDayEditCoverPreview('');
+  });
+})();
+
+/* ===== 移动端悬浮地图按钮 ===== */
+var mobileMapFab = document.getElementById('mobileMapFab');
+var mobileMapBack = document.getElementById('mobileMapBack');
+if (mobileMapFab) {
+  mobileMapFab.addEventListener('click', function() { openMobileMap(); });
+}
+if (mobileMapBack) {
+  mobileMapBack.addEventListener('click', function() { closeMobileMap(); });
+}
+// 窗口尺寸变化：从手机切到 PC（或反之）时重置地图全屏状态
+window.addEventListener('resize', function() {
+  if (!isMobileViewport() && mobileMapOpen) {
+    closeMobileMap();
+  }
+});
+
 /* ====================== 启动 ====================== */
 loadData();
+
+// URL 调试参数：?ui=table 自动进入编辑模式并打开表格编辑（便于快速检查布局）
+(function() {
+  try {
+    var params = new URLSearchParams(window.location.search);
+    var ui = params.get('ui');
+    if (ui === 'table') {
+      setTimeout(function() {
+        try {
+          if (typeof editMode === 'undefined' || !editMode) {
+            document.getElementById('editToggle').click();
+          }
+          setTimeout(function() {
+            try {
+              document.getElementById('tableEditBtn').click();
+            } catch(e2) { console.warn('ui=table: tableEditBtn click failed', e2); }
+          }, 50);
+        } catch(e1) { console.warn('ui=table: editToggle click failed', e1); }
+      }, 50);
+    } else if (ui === 'weather') {
+      // 天气界面调试
+      setTimeout(function() { try { document.getElementById('weatherBtn').click(); } catch(e){} }, 50);
+    } else if (ui === 'overview') {
+      // 总览页调试
+      setTimeout(function() { try { openOverview(); } catch(e){} }, 50);
+    }
+  } catch(e) {}
+})();
 </script>
 
 </body>
