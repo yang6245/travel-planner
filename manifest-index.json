@@ -1,0 +1,25 @@
+{
+  "name": "旅游行程规划小程序",
+  "short_name": "行程规划",
+  "background_color": "#2f6fed",
+  "theme_color": "#2f6fed",
+  "display": "standalone",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ],
+  "start_url": "./index.html",
+  "id": "/index.html",
+  "scope": "./"
+}
