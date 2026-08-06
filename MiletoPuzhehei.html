@@ -3,9 +3,13 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-<meta name="theme-color" content="#667eea">
+<meta name="theme-color" content="#2f6fed">
 <meta name="description" content="MiletoPuzhehei · 弥勒至普者黑行程规划">
 <title>MiletoPuzhehei · 弥勒至普者黑</title>
+<!-- PWA：添加到手机主屏幕显示图标（manifest + apple-touch-icon + favicon） -->
+<link rel="manifest" href="manifest-mileto.json">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icons/favicon-32.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -1917,10 +1921,32 @@ const GITHUB_CONFIG = {
     return c.enabled && !!c.apiKey;
   },
   get dataPath() { return deriveDataPath(); },
-  // Token 存储在 localStorage，每个设备只需输入一次
-  getToken: function() { try { return localStorage.getItem('gh_token') || ''; } catch(e) { return ''; } },
-  setToken: function(t) { try { localStorage.setItem('gh_token', t); } catch(e) {} },
-  removeToken: function() { try { localStorage.removeItem('gh_token'); } catch(e) {} },
+  // ===== Token 双区存储（自动切换管理员/游客） =====
+  // 活跃版存 sessionStorage：仅编辑模式存在，退出编辑/关标签页自动消失 → 平时是游客
+  // 记住版存 localStorage：勾选「记住本设备」才存，进入编辑时自动搬为活跃版
+  getToken: function() {
+    // 只读活跃版（sessionStorage）：游客态不兜底记住版，确保退出编辑后彻底回到游客身份
+    try { return sessionStorage.getItem('gh_token_active') || ''; } catch(e) { return ''; }
+  },
+  // t: Token；remember: 是否同时记住到本设备（长期，下次进入编辑自动填入）
+  setToken: function(t, remember) {
+    try {
+      sessionStorage.setItem('gh_token_active', t || '');
+      if (remember) localStorage.setItem('gh_token', t || '');
+    } catch(e) {}
+  },
+  // 清除活跃版（退出编辑时调用）：只影响本次会话，记住版保留
+  removeActiveToken: function() { try { sessionStorage.removeItem('gh_token_active'); } catch(e) {} },
+  // 读取记住版（本设备长期保存的 Token）
+  getRememberedToken: function() { try { return localStorage.getItem('gh_token') || ''; } catch(e) { return ''; } },
+  // 删除记住版（同步设置里点「删除 Token」）
+  removeRememberedToken: function() { try { localStorage.removeItem('gh_token'); } catch(e) {} },
+  // 完全清除（活跃版 + 记住版）
+  removeToken: function() { this.removeActiveToken(); this.removeRememberedToken(); },
+  // 测试 Token 结束后恢复：原 Token 存在则还原为活跃版，否则清除活跃版（回到游客态）
+  restoreTokenForTest: function(oldToken) {
+    if (oldToken) { this.setToken(oldToken, false); } else { this.removeActiveToken(); }
+  },
   hasToken: function() { return !!this.getToken(); },
   // 获取 raw 只读地址（无需 Token）
   getRawUrl: function() {
@@ -2196,7 +2222,7 @@ function ensureTripImagesExternal(tripData) {
 function openTokenModal() {
   var modal = document.getElementById('tokenModal');
   var input = document.getElementById('tokenInput');
-  input.value = GITHUB_CONFIG.getToken() || '';
+  input.value = GITHUB_CONFIG.getRememberedToken() || GITHUB_CONFIG.getToken() || '';
   var fcInput = document.getElementById('fcProxyInput');
   if (fcInput) fcInput.value = GITHUB_CONFIG.getFcProxyUrl() || '';
   updateFcStatusBadge();
@@ -2362,9 +2388,24 @@ function saveToken() {
   if (token.indexOf('ghp_') !== 0 && token.indexOf('github_pat_') !== 0) {
     showToast('Token 格式不对，应以 ghp_ 开头'); return;
   }
-  GITHUB_CONFIG.setToken(token);
-  showToast('Token 已保存，正在重新加载...');
-  setTimeout(function() { location.reload(); }, 1500);
+  // 记录保存前的身份：若此前是「本地编辑模式」（无活跃 Token），保存后需先把编辑内容推上云端再刷新，避免丢失
+  var wasLocalMode = !GITHUB_CONFIG.hasToken();
+  // 同步设置里保存 = 记住本设备（长期）+ 立即生效（活跃）
+  GITHUB_CONFIG.setToken(token, true);
+  if (wasLocalMode && trip && trip.days && trip.days.length > 0 && !isCloudSave) {
+    // 本地编辑模式补配 Token：先把内存中的编辑内容推送到云端（一次性上传），成功后再刷新
+    updateSyncStatus('syncing');
+    cloudSave(trip).then(function() {
+      showToast('✅ Token 已保存，本地编辑内容已全部上传云端');
+      setTimeout(function() { location.reload(); }, 800);
+    }).catch(function(e) {
+      showToast('⚠️ Token 已保存，但上传失败：' + ((e && e.message) || e) + '（刷新后请重新进入编辑再保存一次）');
+      setTimeout(function() { location.reload(); }, 1500);
+    });
+  } else {
+    showToast('Token 已保存（已记住本设备），正在重新加载...');
+    setTimeout(function() { location.reload(); }, 1500);
+  }
 }
 function testToken() {
   var token = document.getElementById('tokenInput').value.trim();
@@ -2372,24 +2413,24 @@ function testToken() {
   if (!token) { showToast('请输入 Token'); return; }
   result.style.display = 'block';
   result.innerHTML = '<span style="color:#4facfe;">正在测试（1/2 检查仓库权限）...</span>';
-  // 临时设置 Token 测试
+  // 临时设置 Token 测试（只写活跃版，不污染记住版）
   var oldToken = GITHUB_CONFIG.getToken();
-  GITHUB_CONFIG.setToken(token);
+  GITHUB_CONFIG.setToken(token, false);
   // 第一步：测试仓库是否可访问
   fetch(GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo, {
     headers: githubHeaders()
   }).then(function(r) {
     if (r.status === 401) {
       result.innerHTML = '<span style="color:#e74c3c;">✗ Token 无效或已过期（401）。请确认 Token 未过期，且生成时勾选了 <b>repo</b> 权限</span>';
-      GITHUB_CONFIG.setToken(oldToken || '');
+      GITHUB_CONFIG.restoreTokenForTest(oldToken);
       return null;
     } else if (r.status === 404) {
       result.innerHTML = '<span style="color:#e74c3c;">✗ 仓库不存在或无权访问（404）。请确认 owner/repo 配置正确</span>';
-      GITHUB_CONFIG.setToken(oldToken || '');
+      GITHUB_CONFIG.restoreTokenForTest(oldToken);
       return null;
     } else if (r.status !== 200) {
       result.innerHTML = '<span style="color:#e74c3c;">✗ 仓库访问异常，状态码 ' + r.status + '</span>';
-      GITHUB_CONFIG.setToken(oldToken || '');
+      GITHUB_CONFIG.restoreTokenForTest(oldToken);
       return null;
     }
     // 第二步：测试数据文件是否存在
@@ -2405,7 +2446,7 @@ function testToken() {
       result.innerHTML = '<span style="color:#fdcb6e;">✓ Token 有效，但数据文件不存在（' + GITHUB_CONFIG.dataPath + '）。保存一次行程即可创建</span>';
     } else {
       result.innerHTML = '<span style="color:#e74c3c;">✗ 数据文件访问异常，状态码 ' + r2.status + '</span>';
-      GITHUB_CONFIG.setToken(oldToken || '');
+      GITHUB_CONFIG.restoreTokenForTest(oldToken);
     }
   }).catch(function(err) {
     result.innerHTML = '<span style="color:#e74c3c;">✗ 网络错误：' + err.message + '（可能是网络无法连接 GitHub API，国内常见此问题）</span>';
@@ -2415,7 +2456,7 @@ function testToken() {
 function removeTokenHandler() {
   GITHUB_CONFIG.removeToken();
   document.getElementById('tokenInput').value = '';
-  showToast('Token 已删除，切换到只读模式');
+  showToast('Token 已删除（含本设备记住的），切换为游客模式');
   setTimeout(function() { location.reload(); }, 1500);
 }
 
@@ -6061,6 +6102,8 @@ function toggleEditMode() {
       showToast('密码错误，无法进入编辑模式');
       return;
     }
+    // 密码正确：确保活跃 Token 就位（记住版自动搬 / 弹窗输入 / 仅本地编辑）
+    ensureEditToken();
   }
   editMode = !editMode;
   document.body.classList.toggle('edit-mode', editMode);
@@ -6076,16 +6119,50 @@ function toggleEditMode() {
   var weatherBtnEl = document.getElementById('weatherBtn');
   if (weatherBtnEl) weatherBtnEl.style.display = editMode ? 'none' : '';
   if (editMode) {
-    if (!GITHUB_CONFIG.hasToken()) {
-      showToast('未配置 Token，请点击"同步设置"配置后再编辑保存');
-    } else {
+    if (GITHUB_CONFIG.hasToken()) {
       showToast('已进入编辑模式，可编辑POI / 记账 / 设置起点');
+    } else {
+      showToast('未配置 Token：编辑内容仅保存到本地，云端同步需 Token');
     }
+  } else {
+    // 退出编辑：清除活跃 Token + 停止轮询 → 立刻回到游客模式
+    stopCloudPoll();
+    GITHUB_CONFIG.removeActiveToken();
+    updateSyncStatus('readonly');
+    showToast('已退出编辑，切换为游客模式（关掉标签页也会自动回到游客）');
   }
   // 刷新时间轴和徽章，使编辑模式样式生效
   renderTimeline(currentDay);
   updateBadges();
 }
+/* 进入编辑时的 Token 就位逻辑（自动切换管理员/游客的核心）：
+   1. 已有活跃 Token（sessionStorage）→ 直接用
+   2. 无活跃但有记住版（localStorage）→ 自动搬为活跃版（用户无感）
+   3. 都没有 → 弹窗输入，可勾选「记住本设备」；留空则仅本地编辑 */
+function ensureEditToken() {
+  if (GITHUB_CONFIG.hasToken()) return true;
+  var remembered = GITHUB_CONFIG.getRememberedToken();
+  if (remembered) {
+    GITHUB_CONFIG.setToken(remembered, false);
+    showToast('已自动使用本设备记住的 Token');
+    return true;
+  }
+  var input = prompt('本设备未保存 Token（GitHub 访问凭证）。\n\n请输入 Token 以开启云端编辑：\n（留空则仅本地编辑，退出后不保留）');
+  if (input === null || !input.trim()) return false;
+  var token = input.trim();
+  if (token.indexOf('ghp_') !== 0 && token.indexOf('github_pat_') !== 0) {
+    if (!confirm('Token 格式看起来不对（一般以 ghp_ 或 github_pat_ 开头），仍然继续吗？')) return false;
+  }
+  var remember = confirm('是否记住此设备？\n\n【确定】= 记住：下次进入编辑自动填入，无需再输\n【取消】= 仅本次有效：退出编辑或关闭标签页后自动清除');
+  GITHUB_CONFIG.setToken(token, remember);
+  return true;
+}
+
+// 停止 60 秒云端轮询（退出编辑/切换游客时调用）
+function stopCloudPoll() {
+  if (cloudPollTimer) { clearInterval(cloudPollTimer); cloudPollTimer = null; }
+}
+
 
 function changeAdminPwd() {
   var oldPwd = prompt('请输入当前密码：');
