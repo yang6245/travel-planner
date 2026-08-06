@@ -2293,6 +2293,7 @@ function callLLM(systemPrompt, userPrompt, onResult) {
     onResult(resp && resp.text ? resp.text : null);
   }).catch(function(e) {
     console.warn('AI 调用失败，回退内置方案:', e && e.message);
+    showToast('⚠️ AI 生成失败：' + String((e && e.message) || e) + '（已用内置模板）');
     onResult(null);
   });
 }
