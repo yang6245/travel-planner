@@ -2468,6 +2468,8 @@ function saveToken() {
   var wasLocalMode = !GITHUB_CONFIG.hasToken();
   // 同步设置里保存 = 记住本设备（长期）+ 立即生效（活跃）
   GITHUB_CONFIG.setToken(token, true);
+  // 若当前处于编辑模式：记录标记，刷新后自动恢复编辑状态（避免"保存 Token 被踢出编辑"）
+  try { if (editMode) sessionStorage.setItem('restoreEditMode', '1'); } catch(e) {}
   if (wasLocalMode && trip && trip.days && trip.days.length > 0 && !isCloudSave) {
     // 本地编辑模式补配 Token：先把内存中的编辑内容推送到云端（一次性上传），成功后再刷新
     updateSyncStatus('syncing');
@@ -2482,6 +2484,25 @@ function saveToken() {
     showToast('Token 已保存（已记住本设备），正在重新加载...');
     setTimeout(function() { location.reload(); }, 1500);
   }
+}
+/* 页面刷新后自动恢复编辑模式（保存 Token 会 reload，避免把用户踢出编辑） */
+function restoreEditModeIfNeeded() {
+  var need = false;
+  try { need = sessionStorage.getItem('restoreEditMode') === '1'; sessionStorage.removeItem('restoreEditMode'); } catch(e) {}
+  if (!need) return;
+  if (!GITHUB_CONFIG.getToken() && GITHUB_CONFIG.getRememberedToken()) {
+    GITHUB_CONFIG.setToken(GITHUB_CONFIG.getRememberedToken(), false);
+  }
+  editMode = true;
+  document.body.classList.add('edit-mode');
+  var btn = document.getElementById('editToggle');
+  if (btn) { btn.classList.add('active'); btn.innerHTML = '<svg class="icon"><use xlink:href="#icon-check"/></svg>完成编辑'; }
+  ['resetBtn', 'changePwdBtn', 'syncSettingsBtn', 'tableEditBtn', 'fcToggleBtn'].forEach(function(id) {
+    var el = document.getElementById(id); if (el) el.style.display = 'inline-flex';
+  });
+  var weatherBtnEl = document.getElementById('weatherBtn');
+  if (weatherBtnEl) weatherBtnEl.style.display = 'none';
+  try { renderTimeline(currentDay); updateBadges(); } catch(e) {}
 }
 function testToken() {
   var token = document.getElementById('tokenInput').value.trim();
@@ -3455,7 +3476,7 @@ function autoPrefetchWeather() {
   _weatherPrefetched = true;
   setTimeout(function() {
     try {
-      ensureAllDaysWeatherLoaded(function() { ensureAITipsAuto(); initWeatherMonitor(); updateRiskBar(); });
+      ensureAllDaysWeatherLoaded(function() { ensureAITipsAuto(); initWeatherMonitor(); updateRiskBar(); restoreEditModeIfNeeded(); });
     } catch(e) {}
   }, 1500);   /* 等页面渲染稳定后再预拉，避免与首屏卡片天气抢队列 */
 }
