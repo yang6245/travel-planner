@@ -3310,9 +3310,10 @@ var _weatherPrefetched = false;
 function autoPrefetchWeather() {
   if (_weatherPrefetched) return;
   _weatherPrefetched = true;
+  restoreEditModeIfNeeded();   /* 立即恢复编辑模式（保存 Token reload 后），不依赖天气加载 */
   setTimeout(function() {
     try {
-      ensureAllDaysWeatherLoaded(function() { ensureAITipsAuto(); initWeatherMonitor(); updateRiskBar(); restoreEditModeIfNeeded(); });
+      ensureAllDaysWeatherLoaded(function() { ensureAITipsAuto(); initWeatherMonitor(); updateRiskBar(); });
     } catch(e) {}
   }, 1500);   /* 等页面渲染稳定后再预拉，避免与首屏卡片天气抢队列 */
 }
