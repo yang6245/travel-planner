@@ -2151,7 +2151,7 @@ function uploadTripImage(dataUrl, onDone, onError) {
   if (fcUrl) {
     task = fetchWithTimeout(fcUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() },
+      headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() || GITHUB_CONFIG.getRememberedToken() },
       body: JSON.stringify({
         action: 'upload', owner: GITHUB_CONFIG.owner, repo: GITHUB_CONFIG.repo,
         branch: GITHUB_CONFIG.branch, path: path, content: content, message: '上传行程图片 ' + path
@@ -2275,7 +2275,7 @@ function callLLM(systemPrompt, userPrompt, onResult) {
   }
   fetchWithTimeout(fcUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() },
+    headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() || GITHUB_CONFIG.getRememberedToken() },
     body: JSON.stringify({
       action: 'ai',
       provider: cfg.provider,
@@ -2332,7 +2332,7 @@ function testAiConfig() {
   showToast('正在测试 AI 连接...');
   fetchWithTimeout(fcUrl, {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() },
+    headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() || GITHUB_CONFIG.getRememberedToken() },
     body: JSON.stringify({
       action: 'ai', provider: cfg.provider, apiKey: cfg.apiKey, model: cfg.model,
       baseUrl: cfg.baseUrl, systemPrompt: '你是连接测试助手。', userPrompt: '请只回复两个字：正常'
