@@ -2395,6 +2395,13 @@ function callLLM(systemPrompt, userPrompt, onResult) {
   }).then(function(resp) {
     if (resp && resp.error) { throw new Error(resp.error); }
     var text = resp && resp.text ? resp.text : '';
+    if (!text) {
+      /* 返回空文本：记录智谱原始响应，便于定位（推理模型内容可能在 reasoning_content 等字段） */
+      _logAi(false, '返回空文本！原始响应：' + JSON.stringify(resp || {}).slice(0, 300));
+      updateAiLogs();
+      onResult(null);
+      return;
+    }
     _logAi(true, '成功，' + text.length + ' 字：' + text.slice(0, 20));
     updateAiLogs();
     onResult(text || null);
