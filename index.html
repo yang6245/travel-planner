@@ -1272,6 +1272,32 @@
     .overview-stats { grid-template-columns: repeat(3, 1fr); gap: 6px; }  /* 3个图标一排 */
     .overview-stat-item { padding: 10px 4px; }
 
+    /* ===== 手机端紧凑化 v2（标题/按钮/统计卡片整体压缩，让出空间给地点卡片） ===== */
+    /* hero 标题栏 */
+    .hero { padding: 8px 10px; }
+    .hero-content { gap: 8px; }
+    .hero-left h1 { font-size: 16px; letter-spacing: 0.5px; }
+    .hero-badges { gap: 4px; }
+    .badge { padding: 3px 6px; border-radius: 8px; min-width: 0; }
+    .badge-num { font-size: 13px; line-height: 1.1; }
+    .badge-label { font-size: 8px; letter-spacing: 0; margin-top: 1px; }
+    /* 顶部功能按钮行（天气/只读/编辑/同步设置等） */
+    .top-bar { padding: 3px 8px; gap: 3px; }
+    .tool-btn { padding: 5px 7px; font-size: 10px; min-height: 26px; }
+    .tool-btn .icon { font-size: 12px; margin-right: 2px; }
+    #syncStatus { font-size: 10px; padding: 4px 7px; min-height: 0; }
+    /* 统计卡片（行程天数/景点数量/旅途提示） */
+    .overview-stat-item { padding: 7px 3px; border-radius: 8px; }
+    .overview-stat-num { font-size: 16px; line-height: 1.2; }
+    .overview-stat-label { font-size: 11px; margin-top: 2px; }
+    /* 总览首页：DAY 卡片与上下间距压缩 */
+    .overview-home { padding: 10px 8px; }
+    .overview-day-cards { gap: 8px; }
+    .overview-day-card { padding: 10px; border-radius: 10px; }
+    .overview-day-card-cover { height: 80px; }
+
+
+
     /* ===== 手机端：卡片为主，地图按钮弹出 ===== */
     .main-container { flex-direction: column; height: auto; min-height: 0; flex: 1 1 auto; position: relative; }
     /* 时间线卡片占满整个手机屏宽 */
