@@ -1836,6 +1836,7 @@
         <input type="checkbox" id="aiEnabledCheck" style="width:auto;margin:0;" onchange="toggleAiEnabled()"> 启用 AI 生成
       </label>
       <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn-secondary" style="padding:6px 10px;font-size:12px;color:#6d28d9;" onclick="testAiConfig()">测试 AI 连接</button>
         <button class="btn-secondary" style="padding:6px 10px;font-size:12px;color:#6d28d9;" onclick="clearAiConfig()">清除 AI 配置</button>
       </div>
     </div>
@@ -2302,14 +2303,48 @@ function saveAiConfig() {
   var k = document.getElementById('aiKeyInput');
   var m = document.getElementById('aiModelInput');
   var b = document.getElementById('aiBaseUrlInput');
+  var provider = (p && p.value.trim()) || 'deepseek';
+  var baseUrl = (b && b.value.trim()) || '';
+  // 自定义 provider：自动补全 /chat/completions 后缀（FC 端直接用它作最终请求地址，漏后缀会 404）
+  if (provider !== 'deepseek' && provider !== 'dashscope' && baseUrl && baseUrl.indexOf('/chat/completions') === -1) {
+    baseUrl = baseUrl.replace(/\/+$/, '') + '/chat/completions';
+    if (b) b.value = baseUrl; // 回填显示，用户直观看到最终地址
+  }
   GITHUB_CONFIG.setAiConfig({
     enabled: cfg.enabled,
-    provider: (p && p.value.trim()) || 'deepseek',
+    provider: provider,
     apiKey: (k && k.value.trim()) || '',
     model: (m && m.value.trim()) || '',
-    baseUrl: (b && b.value.trim()) || ''
+    baseUrl: baseUrl
   });
   updateAiStatusBadge();
+}
+/* AI 连接自检：一键测试配置是否真正可用（FC 转发 → 大模型返回），失败给出明确原因 */
+function testAiConfig() {
+  var cfg = GITHUB_CONFIG.getAiConfig();
+  if (!cfg.enabled || !cfg.apiKey) { showToast('请先启用 AI 并填写 API Key'); return; }
+  var fcUrl = GITHUB_CONFIG.hasFcProxy() ? GITHUB_CONFIG.getFcProxyUrl() : '';
+  if (!fcUrl) {
+    showToast('❌ AI 需要启用 FC 代理：请到同步设置填 FC 地址，并确认顶部「FC代理」按钮为绿色');
+    return;
+  }
+  showToast('正在测试 AI 连接...');
+  fetchWithTimeout(fcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() },
+    body: JSON.stringify({
+      action: 'ai', provider: cfg.provider, apiKey: cfg.apiKey, model: cfg.model,
+      baseUrl: cfg.baseUrl, systemPrompt: '你是连接测试助手。', userPrompt: '请只回复两个字：正常'
+    })
+  }, 30000).then(function(r) {
+    if (!r.ok) throw new Error('服务返回 ' + r.status);
+    return r.json();
+  }).then(function(resp) {
+    if (resp && resp.error) throw new Error(resp.error);
+    showToast('✅ AI 连接正常：' + String((resp && resp.text) || '').slice(0, 30));
+  }).catch(function(e) {
+    showToast('❌ AI 测试失败：' + String((e && e.message) || e));
+  });
 }
 function toggleAiEnabled() {
   var cb = document.getElementById('aiEnabledCheck');
