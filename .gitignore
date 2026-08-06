@@ -1,9 +1,25 @@
+# 敏感文件（含 Token 明文，严禁上传！）
+配置信息.txt
+*.token
+.gh_token*
+
 # 临时文件
 *.tmp
 *.bak
 *_test_*
 _*.ps1
 _*.js
+_*.py
+_icon_tmp/
+
+# 备份 / 迁移产物（云端已有，无需上传）
+data_backup/
+_migrate_out/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
 
 # 系统文件
 Thumbs.db
@@ -14,6 +30,9 @@ desktop.ini
 .vscode/
 .idea/
 *.swp
+
+# AI 工作记忆（本地私有，不上传）
+.workbuddy/
 
 # 不上传脚本生成的临时旅程文件（保留主文件和示例文件）
 # 注意：创建新旅程.bat 和 .ps1 是工具脚本，需要保留
