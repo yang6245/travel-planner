@@ -114,6 +114,11 @@
   }
   .tool-btn.weather-tool-btn:hover { box-shadow:0 5px 20px rgba(237,137,54,.45); }
   .tool-btn.danger-btn { background:#fff5f5; color:#e53e3e; }
+  /* FC 代理按钮：根据启用状态显示不同颜色，绿色=开启、灰色=关闭（无地址时灰色+提示） */
+  .tool-btn#fcToggleBtn.fc-on { background:linear-gradient(135deg,#10b981,#059669); color:white; }
+  .tool-btn#fcToggleBtn.fc-on:hover { box-shadow:0 5px 20px rgba(16,185,129,.45); }
+  .tool-btn#fcToggleBtn.fc-off { background:#f1f5f9; color:#64748b; }
+  .tool-btn#fcToggleBtn.fc-off:hover { box-shadow:0 5px 20px rgba(0,0,0,.10); color:#334155; }
 
   /* ===== TABS ===== */
   .tabs {
@@ -653,8 +658,14 @@
     .badge { padding:4px 8px; min-width:0; border-radius:10px; }
     .badge-num { font-size:15px; line-height:1.1; }
     .badge-label { font-size:9px; letter-spacing:0; margin-top:1px; }
-    /* top-bar 压缩：按钮更紧凑，可横向滚动，严格限制不超出屏幕 */
-    .top-bar { padding:4px 8px; justify-content:flex-start; gap:4px; margin-top:0; flex-shrink:0; flex-wrap:nowrap; overflow-x:auto; max-width:100vw; width:100%; box-sizing:border-box; }
+    /* top-bar 压缩：按钮更紧凑，可横向滚动，严格限制不超出屏幕（手机端靠右对齐） */
+    .top-bar { padding:4px 8px; justify-content:flex-end; gap:4px; margin-top:0; flex-shrink:0; flex-wrap:nowrap; overflow-x:auto; max-width:100vw; width:100%; box-sizing:border-box; }
+    /* 编辑模式：改为从左排列，左侧按钮（已同步/FC代理等）保持可见，右侧超出的编辑按钮可右滑查看
+       （flex-end 时左侧溢出在 Chrome 里无法滚动到，故编辑模式必须用 flex-start） */
+    body.edit-mode .top-bar { justify-content:flex-start; }
+    /* 编辑模式：改为从左排列，左侧按钮（已同步/FC代理等）保持可见，右侧超出的编辑按钮可右滑查看
+       （flex-end 时左侧溢出在 Chrome 里无法滚动到，故编辑模式必须用 flex-start） */
+    body.edit-mode .top-bar { justify-content:flex-start; }
     .top-bar::-webkit-scrollbar { display:none; }
     #syncStatus { font-size:10px; padding:4px 8px; min-height:0; flex:0 0 auto; }
     .tool-btn { padding:6px 8px; font-size:11px; flex:0 0 auto; justify-content:center; white-space:nowrap; }
@@ -1380,9 +1391,9 @@
       <div class="subtitle" id="tripSubtitle"></div>
     </div>
     <div class="hero-badges">
-      <div class="badge" id="budgetBadge"><div class="badge-num" id="budgetTotal">4800</div><div class="badge-label">团费 CNY</div></div>
-      <div class="badge clickable" id="spentBadge"><div class="badge-num" id="spentTotal">0</div><div class="badge-label">已花销</div></div>
-      <div class="badge" id="remainBadge"><div class="badge-num" id="remainTotal">4800</div><div class="badge-label">剩余</div></div>
+      <div class="badge" id="budgetBadge"><div class="badge-num" id="budgetTotal">--</div><div class="badge-label">团费 CNY</div></div>
+      <div class="badge clickable" id="spentBadge"><div class="badge-num" id="spentTotal">--</div><div class="badge-label">已花销</div></div>
+      <div class="badge" id="remainBadge"><div class="badge-num" id="remainTotal">--</div><div class="badge-label">剩余</div></div>
     </div>
   </div>
 </div>
@@ -1390,15 +1401,12 @@
 <div class="top-bar">
   <button class="tool-btn weather-tool-btn" id="weatherBtn" title="查看所有目的地天气"><svg class="icon"><use xlink:href="#icon-weather-sun"/></svg>天气</button>
   <div id="syncStatus" style="font-size:12px;padding:8px 14px;background:white;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);min-height:28px;display:flex;align-items:center;"><span style="color:#888;">● 连接中...</span></div>
-  <button class="tool-btn share-btn" id="shareBtn"><svg class="icon"><use xlink:href="#icon-share"/></svg>分享</button>
-  <button class="tool-btn exp-btn" id="exportBtn"><svg class="icon"><use xlink:href="#icon-download"/></svg>导出</button>
-  <button class="tool-btn exp-btn" id="importBtn"><svg class="icon"><use xlink:href="#icon-upload"/></svg>导入</button>
+  <button class="tool-btn" id="fcToggleBtn" style="display:none;" onclick="toggleFcProxy()" title="点击切换 FC 代理启用状态"><svg class="icon"><use xlink:href="#icon-close"/></svg>FC代理</button>
+  <button class="tool-btn" id="syncSettingsBtn" style="display:none;background:linear-gradient(135deg,#6e7ff3,#9f7aea);color:white;"><svg class="icon"><use xlink:href="#icon-key"/></svg>同步设置</button>
+  <button class="tool-btn" id="tableEditBtn" style="display:none;"><svg class="icon"><use xlink:href="#icon-table"/></svg>表格编辑</button>
   <button class="tool-btn" id="editToggle"><svg class="icon"><use xlink:href="#icon-edit"/></svg>编辑</button>
   <button class="tool-btn danger-btn" id="resetBtn" style="display:none;"><svg class="icon"><use xlink:href="#icon-reset"/></svg>重置数据</button>
   <button class="tool-btn" id="changePwdBtn" style="display:none;"><svg class="icon"><use xlink:href="#icon-key"/></svg>修改密码</button>
-  <button class="tool-btn" id="syncSettingsBtn" style="display:none;background:linear-gradient(135deg,#6e7ff3,#9f7aea);color:white;"><svg class="icon"><use xlink:href="#icon-key"/></svg>同步设置</button>
-  <button class="tool-btn" id="tableEditBtn" style="display:none;"><svg class="icon"><use xlink:href="#icon-table"/></svg>表格编辑</button>
-  <input type="file" id="importFile" accept="application/json,.json" style="display:none;">
 </div>
 
 <div class="tabs" id="tabs"></div>
@@ -1423,7 +1431,6 @@
       </div>
     </div>
     <div class="map-controls">
-      <button class="map-ctrl-btn" id="addPOIBtn" title="添加地点" style="display:none">+</button>
       <button class="map-ctrl-btn" id="fitViewBtn" title="适配视图">⤢</button>
     </div>
   </div>
@@ -1474,7 +1481,10 @@
     </div>
     <div class="form-group">
       <label>标题</label>
-      <input type="text" id="dayEditTitle" placeholder="例如：稻城 · 蓝色星球">
+      <div style="display:flex;gap:8px;">
+        <input type="text" id="dayEditTitle" placeholder="例如：稻城 · 蓝色星球" style="flex:1;min-width:0;">
+        <button type="button" class="btn-primary" id="daySmartBtn" style="flex:none;padding:8px 14px;background:linear-gradient(135deg,#9f7aea,#6e7ff3);white-space:nowrap;">✨自动生成</button>
+      </div>
     </div>
     <div class="form-group">
       <label>描述（支持多行）</label>
@@ -1496,8 +1506,8 @@
       <input type="hidden" id="editIndex">
       <div class="form-group">
         <label>目的地名称</label>
-        <div style="display:flex;gap:8px;">
-          <input type="text" id="editName" required style="flex:1">
+        <div style="display:flex;gap:8px;flex-wrap:wrap;">
+          <input type="text" id="editName" required style="flex:1;min-width:150px;">
           <button type="button" class="btn-primary" id="editAutoFillBtn" style="flex:none;padding:8px 14px;background:linear-gradient(135deg,#38b2ac,#319795);white-space:nowrap;">✨自动填入</button>
         </div>
         <div style="font-size:12px;color:#888;margin-top:4px;">输入名称后点"自动填入"，一键获取地址、海拔、描述、图片</div>
@@ -1557,15 +1567,15 @@
 <!-- 花销明细弹窗 -->
 <div class="expense-modal" id="expenseModal">
   <div class="modal-content">
-    <button class="btn-secondary" style="position:absolute;right:16px;top:16px;z-index:10;padding:8px 16px;" onclick="closeExpenseModal()">关闭</button>
+    <button onclick="closeExpenseModal()" title="关闭" style="position:absolute;right:14px;top:12px;z-index:10;background:transparent;border:none;cursor:pointer;font-size:22px;line-height:1;color:#1a202c;padding:4px 10px;border-radius:6px;">✕</button>
     <div class="modal-body">
       <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;">
         <h2 class="modal-title" style="margin:0;"><svg class="icon"><use xlink:href="#icon-money"/></svg>花销明细</h2>
       </div>
       <div class="expense-summary">
-        <div class="exp-sum-item"><div class="exp-sum-num" id="expSumBudget">0</div><div class="exp-sum-label">团费</div></div>
-        <div class="exp-sum-item"><div class="exp-sum-num red" id="expSumSpent">0</div><div class="exp-sum-label">已花销</div></div>
-        <div class="exp-sum-item"><div class="exp-sum-num" id="expSumRemain">0</div><div class="exp-sum-label">剩余</div></div>
+        <div class="exp-sum-item"><div class="exp-sum-num" id="expSumBudget">--</div><div class="exp-sum-label">团费</div></div>
+        <div class="exp-sum-item"><div class="exp-sum-num red" id="expSumSpent">--</div><div class="exp-sum-label">已花销</div></div>
+        <div class="exp-sum-item"><div class="exp-sum-num" id="expSumRemain">--</div><div class="exp-sum-label">剩余</div></div>
       </div>
       <div id="expenseList"></div>
       <div style="margin-top:16px;padding:14px;background:linear-gradient(135deg,#f0fff4,#ebf4ff);border-radius:12px;display:flex;justify-content:space-between;align-items:center;">
@@ -1659,6 +1669,7 @@
       <div class="table-edit-actions" style="display:flex;gap:8px;flex-wrap:wrap;">
         <button class="tool-btn exp-btn" id="tableExportBtn" style="padding:6px 12px;font-size:13px;"><svg class="icon"><use xlink:href="#icon-download"/></svg>导出表格</button>
         <button class="tool-btn exp-btn" id="tableImportBtn" style="padding:6px 12px;font-size:13px;"><svg class="icon"><use xlink:href="#icon-upload"/></svg>导入表格</button>
+        <button class="tool-btn" id="tableSmartBtn" style="padding:6px 12px;font-size:13px;background:linear-gradient(135deg,#9f7aea,#6e7ff3);color:#fff;"><svg class="icon"><use xlink:href="#icon-bulb"/></svg>✨一键匹配简介</button>
         <button class="tool-btn" id="tableAddDayBtn" style="padding:6px 12px;font-size:13px;background:var(--accent);color:#fff;">+ 添加天数</button>
         <button class="btn-primary" id="tableSaveBtnTop" style="padding:6px 16px;font-size:13px;white-space:nowrap;flex:none;"><svg class="icon"><use xlink:href="#icon-save"/></svg>保存并同步</button>
         <button class="btn-secondary" style="padding:8px 16px;" onclick="closeTableEdit()">关闭</button>
@@ -1671,9 +1682,16 @@
     </div>
     <!-- 预算汇总面板 -->
     <div id="budgetSummaryPanel" style="margin:8px 12px;padding:8px 10px;background:linear-gradient(135deg,#f0f9ff,#e6fffa);border:1px solid #90cdf4;border-radius:8px;">
-      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px;flex-wrap:wrap;gap:6px;">
         <div style="font-weight:700;font-size:13px;color:#2c5282;">💰 旅游预算汇总</div>
-        <button id="tblCalcAllRoutesBtn" style="padding:3px 8px;background:#f0f0f0;color:#666;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:10px;" title="批量重算所有路线（自动计算已可用，此按钮用于修复失败项）">🔄 重新计算所有路线</button>
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;">
+          <label style="display:flex;align-items:center;gap:4px;font-size:12px;color:#4a5568;">
+            燃料费(手动)
+            <span style="color:#e67e22;font-weight:700;">¥</span>
+            <input type="number" id="tblFuelFee" min="0" step="1" style="width:90px;padding:3px 6px;border:1px solid #cbd5e1;border-radius:4px;font-size:12px;color:#2d3748;" onchange="onTblFuelFeeChange(this.value)">
+          </label>
+          <button id="tblCalcAllRoutesBtn" style="padding:3px 8px;background:#f0f0f0;color:#666;border:1px solid #ddd;border-radius:4px;cursor:pointer;font-size:10px;" title="批量重算所有路线（自动计算已可用，此按钮用于修复失败项）">🔄 重新计算所有路线</button>
+        </div>
       </div>
       <div id="budgetSummaryContent" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(95px,1fr));gap:6px;font-size:12px;"></div>
     </div>
@@ -1737,7 +1755,7 @@
   <div class="edit-form" style="max-width:480px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <h2 style="margin:0;font-size:18px;"><svg class="icon" style="font-size:20px;margin-right:6px;vertical-align:-0.2em;color:#9f7aea;"><use xlink:href="#icon-key"/></svg>云端同步设置</h2>
-      <button class="btn-secondary" style="padding:8px 16px;" onclick="closeTokenModal()">关闭</button>
+      <button onclick="closeTokenModal()" title="关闭" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;color:#94a3b8;padding:2px 6px;border-radius:6px;">✕</button>
     </div>
     <div style="background:#f8f9fa;border-radius:10px;padding:14px;margin-bottom:14px;font-size:13px;line-height:1.6;color:#555;">
       <div style="font-weight:700;margin-bottom:6px;color:#333;">关于 Token</div>
@@ -1751,19 +1769,28 @@
       <div style="font-size:12px;color:#888;margin-top:6px;">Token 以 <code>ghp_</code> 开头，获取方式见下方说明</div>
     </div>
     <div style="background:#eef7ff;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#2c5282;">
-      <div style="font-weight:700;margin-bottom:4px;color:#2b6cb0;">⚡ 阿里云 FC 代理（可选，国内保存/上传加速）</div>
-      开启时保存与图片上传经由国内 FC 转发；关闭后全部直连 GitHub（偶尔慢）。<br>
-      可先用 GitHub 直连，确认连不上再勾选开启。
-      <input type="text" id="fcProxyInput" placeholder="https://xxxxxxxx.fc.aliyuncs.com/xxx" style="width:100%;padding:8px 10px;border:1px solid #90cdf4;border-radius:6px;font-size:12px;box-sizing:border-box;margin-top:6px;font-family:monospace;">
-      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer;user-select:none;">
-        <input type="checkbox" id="fcEnabledCheck" style="width:auto;margin:0;" onchange="toggleFcEnabled()"> 启用 FC 代理（勾选后保存/上传走 FC）
-      </label>
-      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
-        <button class="btn-secondary" style="flex:1;padding:6px 10px;font-size:12px;" onclick="saveFcProxy()">保存 FC 地址</button>
-        <button class="btn-secondary" style="padding:6px 10px;font-size:12px;color:#e74c3c;" onclick="removeFcProxy()">清除</button>
-        <button class="btn-secondary" style="padding:6px 10px;font-size:12px;color:#2b6cb0;" onclick="window.open('https://fcnext.console.aliyun.com/','_blank')">打开阿里云控制台</button>
+      <div style="font-weight:700;margin-bottom:4px;color:#2b6cb0;">⚡ 阿里云 FC 代理 <span id="fcStatusBadge" style="font-size:11px;font-weight:600;margin-left:6px;padding:1px 10px;border-radius:10px;"></span></div>
+      填写地址后<strong>输入即自动保存</strong>，开关在顶部工具栏「<strong>FC代理</strong>」按钮上一键切换。
+      <input type="text" id="fcProxyInput" placeholder="https://xxxxxxxx.fc.aliyuncs.com/xxx" oninput="saveFcProxy()" style="width:100%;padding:8px 10px;border:1px solid #90cdf4;border-radius:6px;font-size:12px;box-sizing:border-box;margin-top:6px;font-family:monospace;">
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn-secondary" style="flex:1;padding:6px 10px;font-size:12px;color:#e74c3c;" onclick="removeFcProxy()">清除 FC 地址</button>
+        <button class="btn-secondary" style="padding:6px 10px;font-size:12px;color:#2b6cb0;" onclick="window.open('https://fcnext.console.aliyun.com/','_blank')">阿里云控制台</button>
       </div>
-      <div style="font-size:11px;color:#718096;margin-top:6px;">提示：本开关只控制当前浏览器是否调用 FC；要彻底停用函数计费，请到阿里云控制台把「最小实例数」设为 0 或删除函数。</div>
+    </div>
+    <div style="background:#f5f3ff;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#4c1d95;">
+      <div style="font-weight:700;margin-bottom:4px;color:#6d28d9;">🤖 AI 大模型 <span id="aiStatusBadge" style="font-size:11px;font-weight:600;margin-left:6px;padding:1px 10px;border-radius:10px;"></span><span style="font-size:11px;font-weight:400;color:#8b5cf6;">（可选，预留）</span></div>
+      配置后「智能匹配简介」与「旅途提示」将由 AI 生成；未配置时使用内置方案。<br>
+      需配合 FC 代理使用（请求经 FC 转发，Key 不暴露给访客）。
+      <input type="text" id="aiProviderInput" placeholder="服务商：deepseek（默认）/ dashscope / custom" oninput="saveAiConfig()" style="width:100%;padding:8px 10px;border:1px solid #c4b5fd;border-radius:6px;font-size:12px;box-sizing:border-box;margin-top:6px;">
+      <input type="text" id="aiBaseUrlInput" placeholder="接口地址（可选，custom 时必填，如 https://api.siliconflow.cn/v1/chat/completions）" oninput="saveAiConfig()" style="width:100%;padding:8px 10px;border:1px solid #c4b5fd;border-radius:6px;font-size:12px;box-sizing:border-box;margin-top:6px;font-family:monospace;">
+      <input type="password" id="aiKeyInput" placeholder="API Key（仅存本机浏览器）" oninput="saveAiConfig()" style="width:100%;padding:8px 10px;border:1px solid #c4b5fd;border-radius:6px;font-size:12px;box-sizing:border-box;margin-top:6px;font-family:monospace;">
+      <input type="text" id="aiModelInput" placeholder="模型名（留空用默认：deepseek-chat / qwen-plus）" oninput="saveAiConfig()" style="width:100%;padding:8px 10px;border:1px solid #c4b5fd;border-radius:6px;font-size:12px;box-sizing:border-box;margin-top:6px;">
+      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer;user-select:none;">
+        <input type="checkbox" id="aiEnabledCheck" style="width:auto;margin:0;" onchange="toggleAiEnabled()"> 启用 AI 生成
+      </label>
+      <div style="display:flex;gap:8px;margin-top:8px;">
+        <button class="btn-secondary" style="padding:6px 10px;font-size:12px;color:#6d28d9;" onclick="clearAiConfig()">清除 AI 配置</button>
+      </div>
     </div>
     <div style="background:#fff3cd;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;line-height:1.6;color:#856404;">
       <div style="font-weight:700;margin-bottom:4px;">如何获取 Token？</div>
@@ -1780,6 +1807,17 @@
       <button class="btn-secondary" style="padding:10px 16px;color:#e74c3c;" onclick="removeTokenHandler()">删除 Token</button>
     </div>
     <div id="tokenTestResult" style="margin-top:10px;font-size:13px;display:none;"></div>
+  </div>
+</div>
+
+<!-- 预算明细弹窗（团费按键点击查看；非编辑模式） -->
+<div class="edit-modal" id="budgetDetailModal" style="display:none;">
+  <div class="edit-form" style="max-width:420px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+      <h2 style="margin:0;font-size:18px;">💰 预算明细</h2>
+      <button onclick="closeBudgetDetailModal()" title="关闭" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;color:#94a3b8;padding:2px 6px;border-radius:6px;">✕</button>
+    </div>
+    <div id="budgetDetailContent"></div>
   </div>
 </div>
 
@@ -1853,6 +1891,31 @@ const GITHUB_CONFIG = {
   },
   setFcEnabled: function(on) { try { localStorage.setItem('fc_enabled', on ? '1' : '0'); } catch(e) {} },
   hasFcProxy: function() { return this.getFcEnabled() && !!this.getFcProxyUrl(); },
+  // ===== AI 大模型（预留）：配置后「智能匹配简介」与「旅途提示」由 AI 生成；未配置走内置方案 =====
+  getAiConfig: function() {
+    try {
+      return {
+        enabled: localStorage.getItem('ai_enabled') === '1',
+        provider: localStorage.getItem('ai_provider') || 'deepseek',
+        apiKey: localStorage.getItem('ai_api_key') || '',
+        model: localStorage.getItem('ai_model') || '',
+        baseUrl: localStorage.getItem('ai_base_url') || ''
+      };
+    } catch(e) { return { enabled: false, provider: 'deepseek', apiKey: '', model: '', baseUrl: '' }; }
+  },
+  setAiConfig: function(cfg) {
+    try {
+      localStorage.setItem('ai_enabled', cfg.enabled ? '1' : '0');
+      localStorage.setItem('ai_provider', cfg.provider || 'deepseek');
+      localStorage.setItem('ai_api_key', cfg.apiKey || '');
+      localStorage.setItem('ai_model', cfg.model || '');
+      localStorage.setItem('ai_base_url', cfg.baseUrl || '');
+    } catch(e) {}
+  },
+  hasAi: function() {
+    var c = this.getAiConfig();
+    return c.enabled && !!c.apiKey;
+  },
   get dataPath() { return deriveDataPath(); },
   // Token 存储在 localStorage，每个设备只需输入一次
   getToken: function() { try { return localStorage.getItem('gh_token') || ''; } catch(e) { return ''; } },
@@ -1914,15 +1977,13 @@ function distanceKm(lat1, lng1, lat2, lng2) {
 /* 该坐标 10km 范围内是否存在"地址类"POI（能显示天气的类型：非美食/购物） */
 function hasNearbyWeatherPOI(lat, lng) {
   if (!trip || !trip.days) return false;
-  var found = false;
-  trip.days.some(function(d) {
+  return trip.days.some(function(d) {
     return (d.pois || []).some(function(p) {
       if (!p.lng || !p.lat) return false;
       if (noWeatherTypes.indexOf(p.type) !== -1) return false;  /* 只看地址类 */
       return distanceKm(lat, lng, p.lat, p.lng) <= 10;
     });
   });
-  return found;
 }
 
 /* 该 POI 是否需要显示天气：
@@ -1938,13 +1999,14 @@ function needWeatherForPOI(poi) {
 var weatherCache = {};
 /* adcode 反查缓存：lng+lat -> adcode */
 var adcodeCache = {};
-const categoryLabels = ['餐食','住宿','门票','交通','购物','其他'];
+const categoryLabels = ['餐食','住宿','门票','燃料费','过路费','购物','其他'];
 
 const defaultTrip = {
   tripName: 'MiletoPuzhehei',
   subtitle: 'Mile to Puzhehei · Yunnan Journey',
   startDate: '2026-08-01',
   totalBudget: 4800,
+  fuelFee: 0,   /* 燃料费（手动预估填写） */
   expenses: [
     {id:1,  day:1, poiIndex:2, amount:280, category:'餐食', note:'牦牛肉火锅', time:'2026-08-01 12:30'},
     {id:2,  day:1, poiIndex:3, amount:800, category:'购物', note:'手工唐卡', time:'2026-08-01 14:30'},
@@ -2137,50 +2199,163 @@ function openTokenModal() {
   input.value = GITHUB_CONFIG.getToken() || '';
   var fcInput = document.getElementById('fcProxyInput');
   if (fcInput) fcInput.value = GITHUB_CONFIG.getFcProxyUrl() || '';
-  var fcEnabled = document.getElementById('fcEnabledCheck');
-  if (fcEnabled) fcEnabled.checked = GITHUB_CONFIG.getFcEnabled();
+  updateFcStatusBadge();
+  /* AI 配置回填 */
+  var aiCfg = GITHUB_CONFIG.getAiConfig();
+  var pEl = document.getElementById('aiProviderInput'); if (pEl) pEl.value = aiCfg.provider || 'deepseek';
+  var bEl = document.getElementById('aiBaseUrlInput'); if (bEl) bEl.value = aiCfg.baseUrl || '';
+  var kEl = document.getElementById('aiKeyInput'); if (kEl) kEl.value = aiCfg.apiKey || '';
+  var mEl = document.getElementById('aiModelInput'); if (mEl) mEl.value = aiCfg.model || '';
+  var cbEl = document.getElementById('aiEnabledCheck'); if (cbEl) cbEl.checked = !!aiCfg.enabled;
+  updateAiStatusBadge();
   document.getElementById('tokenTestResult').style.display = 'none';
   modal.style.display = 'flex';
 }
 function closeTokenModal() {
   document.getElementById('tokenModal').style.display = 'none';
 }
-/* 保存/清除 FC 代理地址 */
+/* ===== FC 代理：地址 + 开关管理（开关在工具栏「FC代理」按钮） ===== */
+// FC 地址输入即生效（弹窗内 oninput 自动调用）
 function saveFcProxy() {
-  var url = document.getElementById('fcProxyInput').value.trim();
+  var input = document.getElementById('fcProxyInput');
+  var url = (input && input.value || '').trim();
   if (url && !/^https:\/\//.test(url)) { showToast('FC 地址需以 https:// 开头'); return; }
   GITHUB_CONFIG.setFcProxyUrl(url);
-  var cb = document.getElementById('fcEnabledCheck');
-  if (cb && url) GITHUB_CONFIG.setFcEnabled(cb.checked);   // 有地址时同步开关状态
-  showToast(url ? '✅ FC 代理地址已保存' : 'FC 代理地址已清除');
+  updateFcBtn();
+  updateFcStatusBadge();
 }
+// 清除 FC 地址 + 关闭开关
 function removeFcProxy() {
   GITHUB_CONFIG.setFcProxyUrl('');
   GITHUB_CONFIG.setFcEnabled(false);
-  var cb = document.getElementById('fcEnabledCheck');
-  if (cb) cb.checked = false;
-  document.getElementById('fcProxyInput').value = '';
-  showToast('FC 代理已清除，保存/上传将直连 GitHub');
+  var input = document.getElementById('fcProxyInput');
+  if (input) input.value = '';
+  updateFcBtn();
+  updateFcStatusBadge();
+  showToast('FC 代理已关闭，保存/上传将直连 GitHub');
 }
-/* 启用/关闭 FC 代理开关（勾选立即生效，无需保存） */
-function toggleFcEnabled() {
-  var cb = document.getElementById('fcEnabledCheck');
-  if (!cb) return;
-  GITHUB_CONFIG.setFcEnabled(cb.checked);
-  showToast(cb.checked ? '✅ 已启用 FC 代理（保存/上传走国内加速）' : '已关闭 FC 代理，改用 GitHub 直连');
+// 工具栏「FC代理」按钮：点击切换启用状态
+function toggleFcProxy() {
+  if (!GITHUB_CONFIG.getFcProxyUrl()) {
+    showToast('请先到「同步设置」填写 FC 地址');
+    return;
+  }
+  var newOn = !GITHUB_CONFIG.hasFcProxy();
+  GITHUB_CONFIG.setFcEnabled(newOn);
+  updateFcBtn();
+  showToast(newOn ? '✅ 已启用 FC 代理（保存/上传走国内加速）' : '已关闭 FC 代理，改用 GitHub 直连');
+}
+// 同步工具栏按钮状态：开=绿色+✓，关=灰色+✗，已启用但未配地址时显示「未配地址」灰态
+function updateFcBtn() {
+  var btn = document.getElementById('fcToggleBtn');
+  if (!btn) return;
+  var url = GITHUB_CONFIG.getFcProxyUrl();
+  var enabled = GITHUB_CONFIG.getFcEnabled();
+  var on = enabled && !!url;
+  btn.classList.toggle('fc-on', on);
+  btn.classList.toggle('fc-off', !on);
+  var hint = (enabled && !url) ? '<span style="font-size:10px;opacity:.7;margin-left:2px;">未配地址</span>' : '';
+  btn.innerHTML = '<svg class="icon"><use xlink:href="#icon-' + (on ? 'check' : 'close') + '"/></svg>FC代理' + hint;
+  btn.title = on ? '点击关闭 FC 代理'
+              : (!url ? '请先到「同步设置」填写 FC 地址'
+              : '点击启用 FC 代理');
+}
+// 同步设置弹窗内的 FC 状态徽标：已配置=绿 / 未配置=红
+function updateFcStatusBadge() {
+  var badge = document.getElementById('fcStatusBadge');
+  if (!badge) return;
+  var hasUrl = !!GITHUB_CONFIG.getFcProxyUrl();
+  badge.textContent = hasUrl ? '已配置' : '未配置';
+  badge.style.color = hasUrl ? '#059669' : '#e53e3e';
+  badge.style.background = hasUrl ? '#ecfdf5' : '#fff5f5';
+}
+
+/* ===== 大模型调用（预留）：经 FC action=ai 转发；未配置 AI / 未启用 FC / 失败 → onResult(null) 由调用方回退内置方案 ===== */
+function callLLM(systemPrompt, userPrompt, onResult) {
+  if (!GITHUB_CONFIG.hasAi()) { onResult(null); return; }
+  var cfg = GITHUB_CONFIG.getAiConfig();
+  var fcUrl = GITHUB_CONFIG.hasFcProxy() ? GITHUB_CONFIG.getFcProxyUrl() : '';
+  if (!fcUrl) {
+    showToast('AI 生成需要启用 FC 代理（同步设置 → FC代理 按钮）');
+    onResult(null); return;
+  }
+  fetchWithTimeout(fcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() },
+    body: JSON.stringify({
+      action: 'ai',
+      provider: cfg.provider,
+      apiKey: cfg.apiKey,
+      model: cfg.model,
+      baseUrl: cfg.baseUrl,
+      systemPrompt: systemPrompt,
+      userPrompt: userPrompt
+    })
+  }, 30000).then(function(r) {
+    if (!r.ok) throw new Error('AI 服务返回 ' + r.status);
+    return r.json();
+  }).then(function(resp) {
+    if (resp && resp.error) throw new Error(resp.error);
+    onResult(resp && resp.text ? resp.text : null);
+  }).catch(function(e) {
+    console.warn('AI 调用失败，回退内置方案:', e && e.message);
+    onResult(null);
+  });
+}
+/* 从 AI 返回文本中提取 JSON 对象（容错：允许前后多余文字） */
+function parseAIJson(text) {
+  if (!text) return null;
+  try {
+    var m = text.match(/\{[\s\S]*\}/);
+    return m ? JSON.parse(m[0]) : null;
+  } catch(e) { return null; }
+}
+/* ===== AI 配置（预留）：同步设置弹窗内编辑，未启用不影响任何功能 ===== */
+function saveAiConfig() {
+  var cfg = GITHUB_CONFIG.getAiConfig();
+  var p = document.getElementById('aiProviderInput');
+  var k = document.getElementById('aiKeyInput');
+  var m = document.getElementById('aiModelInput');
+  var b = document.getElementById('aiBaseUrlInput');
+  GITHUB_CONFIG.setAiConfig({
+    enabled: cfg.enabled,
+    provider: (p && p.value.trim()) || 'deepseek',
+    apiKey: (k && k.value.trim()) || '',
+    model: (m && m.value.trim()) || '',
+    baseUrl: (b && b.value.trim()) || ''
+  });
+  updateAiStatusBadge();
+}
+function toggleAiEnabled() {
+  var cb = document.getElementById('aiEnabledCheck');
+  var cfg = GITHUB_CONFIG.getAiConfig();
+  cfg.enabled = !!(cb && cb.checked);
+  GITHUB_CONFIG.setAiConfig(cfg);
+  updateAiStatusBadge();
+  showToast(cfg.enabled ? '✅ 已启用 AI 生成' : '已关闭 AI 生成（将使用内置方案）');
+}
+function clearAiConfig() {
+  GITHUB_CONFIG.setAiConfig({ enabled: false, provider: 'deepseek', apiKey: '', model: '', baseUrl: '' });
+  var p = document.getElementById('aiProviderInput'); if (p) p.value = 'deepseek';
+  var k = document.getElementById('aiKeyInput'); if (k) k.value = '';
+  var m = document.getElementById('aiModelInput'); if (m) m.value = '';
+  var b = document.getElementById('aiBaseUrlInput'); if (b) b.value = '';
+  var cb = document.getElementById('aiEnabledCheck'); if (cb) cb.checked = false;
+  updateAiStatusBadge();
+  showToast('AI 配置已清除');
+}
+function updateAiStatusBadge() {
+  var badge = document.getElementById('aiStatusBadge');
+  if (!badge) return;
+  var cfg = GITHUB_CONFIG.getAiConfig();
+  var ready = cfg.enabled && !!cfg.apiKey;
+  var hasKey = !!cfg.apiKey;
+  badge.textContent = ready ? '已启用' : (hasKey ? '未启用' : '未配置');
+  badge.style.color = ready ? '#059669' : (hasKey ? '#b45309' : '#e53e3e');
+  badge.style.background = ready ? '#ecfdf5' : (hasKey ? '#fef3c7' : '#fff5f5');
 }
 
 /* ===== Token 管理界面 ===== */
-function openTokenModal() {
-  var modal = document.getElementById('tokenModal');
-  var input = document.getElementById('tokenInput');
-  input.value = GITHUB_CONFIG.getToken() || '';
-  document.getElementById('tokenTestResult').style.display = 'none';
-  modal.style.display = 'flex';
-}
-function closeTokenModal() {
-  document.getElementById('tokenModal').style.display = 'none';
-}
 function saveToken() {
   var token = document.getElementById('tokenInput').value.trim();
   if (!token) { showToast('请输入 Token'); return; }
@@ -2842,6 +3017,7 @@ function loadDataInternal() {
         renderOverviewHome();
         updateBadges();
         initMap();
+        autoPrefetchWeather();
       } else {
         throw new Error('云端数据为空');
       }
@@ -2937,6 +3113,7 @@ function loadDataInternal() {
       renderOverviewHome();
       updateBadges();
       initMap();
+      autoPrefetchWeather();
     } catch(e) {}
   }
 
@@ -2958,6 +3135,7 @@ function loadDataInternal() {
         renderOverviewHome();
         updateBadges();
         initMap();
+        autoPrefetchWeather();
       }
     } else {
       throw new Error('云端数据为空');
@@ -3153,6 +3331,16 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
+/* ===== 天气自动预拉：打开网站后后台静默收集所有天天气（不阻塞 UI），之后点旅途提示/天气按钮秒开 ===== */
+var _weatherPrefetched = false;
+function autoPrefetchWeather() {
+  if (_weatherPrefetched) return;
+  _weatherPrefetched = true;
+  setTimeout(function() {
+    try { ensureAllDaysWeatherLoaded(function(){}); } catch(e) {}
+  }, 1500);   /* 等页面渲染稳定后再预拉，避免与首屏卡片天气抢队列 */
+}
+
 function updateBadges() {
   document.getElementById('budgetTotal').textContent = trip.totalBudget || 0;
   const spent = totalSpent();
@@ -3188,10 +3376,44 @@ function updateBadges() {
       budgetBadge.title = '点击编辑团费';
       budgetBadge.onclick = function() { editBudget(); };
     } else {
-      budgetBadge.style.cursor = '';
-      budgetBadge.onclick = null;
+      budgetBadge.style.cursor = 'pointer';
+      budgetBadge.title = '点击查看预算明细';
+      budgetBadge.onclick = function() { openBudgetDetailModal(); };
     }
   }
+}
+
+/* 预算明细弹窗：非编辑模式点团费显示完整预算构成（过路/住宿餐饮/门票及其他/总支出/结余） */
+function openBudgetDetailModal() {
+  var totalTolls = 0, totalFoodHotel = 0, totalTicketOther = 0;
+  (trip.days || []).forEach(function(d) {
+    (d.pois || []).forEach(function(p) {
+      totalTolls += parseFloat(p.toll) || 0;
+      var c = parseFloat(p.cost) || 0;
+      if (p.type === 'food' || p.type === 'hotel') totalFoodHotel += c;
+      else if (p.type === 'scenic' || p.type === 'shop') totalTicketOther += c;
+    });
+  });
+  var fuelFee = parseFloat(trip.fuelFee) || 0;
+  var totalExpense = fuelFee + totalTolls + totalFoodHotel + totalTicketOther;
+  /* 名称统一：都不加"合计"，最后一行加粗作为汇总 */
+  function row(label, value, color, bold) {
+    return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid #edf2f7;font-size:14px;">' +
+      '<span style="color:#4a5568;">' + label + '</span>' +
+      '<span style="color:' + (color || '#2c5282') + ';font-weight:' + (bold ? '700' : '600') + ';font-size:' + (bold ? '16px' : '14px') + ';">¥' + value.toFixed(2) + '</span>' +
+      '</div>';
+  }
+  var html =
+    row('燃料费', fuelFee, '#e67e22') +
+    row('过路费', totalTolls, '#dd6b20') +
+    row('住宿及餐饮', totalFoodHotel, '#805ad5') +
+    row('门票及其他', totalTicketOther, '#d53f8c') +
+    row('预计总支出', totalExpense, '#e53e3e', true);
+  document.getElementById('budgetDetailContent').innerHTML = html;
+  document.getElementById('budgetDetailModal').style.display = 'flex';
+}
+function closeBudgetDetailModal() {
+  document.getElementById('budgetDetailModal').style.display = 'none';
 }
 
 function showToast(msg) {
@@ -3240,6 +3462,25 @@ function haversineKm(lng1, lat1, lng2, lat2) {
 }
 
 /* 分析某天：总路程 km / 最高海拔 / 最低夜间温度 / 类型分布 */
+/* 统一读取某 POI 的天气缓存（兼容 adcode 缓存与坐标兜底 key 'loc:坐标'），返回缓存对象或 null */
+function getWeatherCacheForPOI(poi) {
+  if (!poi || !poi.lng || !poi.lat) return null;
+  var coord = poi.lng.toFixed(4) + ',' + poi.lat.toFixed(4);
+  var info = adcodeCache[coord];
+  var key = (info && info.adcode) ? info.adcode : ('loc:' + coord);
+  var w = weatherCache[key];
+  return (w && w.forecasts && w.forecasts.length > 0) ? w : null;
+}
+/* 从天气缓存对象中取某一天的预报（按行程日期匹配） */
+function getDayForecastFromCache(w, day) {
+  if (!w || !w.forecasts) return null;
+  var dayDate = getDayDate(day);
+  for (var i = 0; i < w.forecasts.length; i++) {
+    if (w.forecasts[i].date === dayDate) return w.forecasts[i];
+  }
+  return null;
+}
+
 function analyzeDay(d) {
   var dist = 0, maxAlt = 0, minTemp = null, maxTemp = null;
   var pois = d.pois || [];
@@ -3252,10 +3493,9 @@ function analyzeDay(d) {
     if (p.lng && p.lat) prev = { lng: parseFloat(p.lng), lat: parseFloat(p.lat) };
     if (p.altitude) maxAlt = Math.max(maxAlt, parseFloat(p.altitude));
     if (p.lng && p.lat) {
-      var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
-      if (info && weatherCache[info.adcode] && weatherCache[info.adcode].forecasts &&
-          weatherCache[info.adcode].forecasts.length > 0) {
-        var f = weatherCache[info.adcode].forecasts[0];
+      var w = getWeatherCacheForPOI(p);
+      if (w) {
+        var f = w.forecasts[0];
         if (f.nightTemp) {
           var t = parseInt(f.nightTemp);
           if (minTemp === null || t < minTemp) minTemp = t;
@@ -3334,8 +3574,8 @@ function buildTripSummaryHtml() {
       (x.d.pois || []).forEach(function(p) {
         if (f) return;
         if (!p.lng || !p.lat) return;
-        var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
-        if (info) f = getDayForecast(info.adcode, x.day);
+        var w = getWeatherCacheForPOI(p);
+        if (w) f = getDayForecastFromCache(w, x.day);
       });
       if (f && /雨|雪/.test(f.dayWeather || '')) rainDays2.push(x.day);
     });
@@ -3374,8 +3614,8 @@ function buildTripSummaryHtml() {
     (x.d.pois || []).forEach(function(p) {
       if (f) return;
       if (!p.lng || !p.lat) return;
-      var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
-      if (info) f = getDayForecast(info.adcode, x.day);
+      var w = getWeatherCacheForPOI(p);
+      if (w) f = getDayForecastFromCache(w, x.day);
     });
     if (f) {
       var w = f.dayWeather || '';
@@ -3480,7 +3720,30 @@ function closeDayTripTipModal() {
 function openDayTripTipModal(day) {
   openTripTipModal('<div style="color:#a0aec0;padding:20px 0;text-align:center;">正在加载当天天气与旅途信息...</div>');
   ensureDayWeatherLoaded(day, function() {
-    openTripTipModal(buildDayTripTipModalContent(day));
+    /* AI 已配置：优先由 AI 生成当天旅途提示；未配置/失败走内置板块 */
+    if (GITHUB_CONFIG.hasAi()) {
+      buildDayTripTipWithAI(day, function(html) { openTripTipModal(html); });
+    } else {
+      openTripTipModal(buildDayTripTipModalContent(day));
+    }
+  });
+}
+
+/* AI 生成某天旅途提示（预留）：构造当天行程 prompt → callLLM → 失败回退内置板块 */
+function buildDayTripTipWithAI(day, callback) {
+  var d = trip.days.find(function(x) { return x.day === day; });
+  if (!d) { callback(buildDayTripTipModalContent(day)); return; }
+  var poiLines = (d.pois || []).map(function(p) {
+    return '· ' + (p.time || '') + ' ' + p.name + '（' + (p.type || '') + '）' + (p.desc ? '：' + p.desc : '');
+  }).join('\n');
+  var prompt = '请为自驾游行程第 ' + day + ' 天撰写旅途提示，当天安排如下：\n' + poiLines +
+    '\n要求：涵盖穿衣建议、驾驶/路况注意、美食推荐、体力提醒、药品准备等内容（按需取舍），条目化列出，200字以内，只返回纯文本，不要标题符号装饰。';
+  callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', prompt, function(text) {
+    if (text) {
+      callback('<div style="line-height:1.8;font-size:13px;white-space:pre-wrap;color:#333;">' + escapeHtml(text) + '</div>');
+      return;
+    }
+    callback(buildDayTripTipModalContent(day));
   });
 }
 
@@ -3489,22 +3752,37 @@ function ensureDayWeatherLoaded(day, callback) {
   var d = trip.days.find(function(x) { return x.day === day; });
   if (!d) { callback(); return; }
   var cityMap = {};
-  var needAdcode = [];  /* adcodeCache 未命中的 POI，稍后补查 adcode */
+  var needAdcode = [];  /* adcodeCache 未命中的 POI，稍后补查 adcode（按坐标去重，避免重复排队） */
+  var needSeen = {};
   (d.pois || []).forEach(function(p) {
     if (!p.lng || !p.lat) return;
     var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
-    if (!info) { needAdcode.push(p); return; }
+    if (!info) {
+      var ck = p.lng.toFixed(4) + ',' + p.lat.toFixed(4);
+      if (!needSeen[ck]) { needSeen[ck] = true; needAdcode.push(p); }
+      return;
+    }
     if (cityMap[info.adcode]) return;
     cityMap[info.adcode] = { adcode: info.adcode, city: info.city, lng: p.lng, lat: p.lat };
   });
 
-  /* 补查 adcode（逆地理编码），完成后收集 cityMap */
+  /* 补查 adcode（逆地理编码），完成后收集 cityMap；regeo 失败用坐标兜底，天气照常拉取（Open-Meteo 仅需坐标） */
   function collectAfterAdcode() {
     needAdcode.forEach(function(p) {
-      var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
-      if (!info) return;
-      if (cityMap[info.adcode]) return;
-      cityMap[info.adcode] = { adcode: info.adcode, city: info.city, lng: p.lng, lat: p.lat };
+      var key = p.lng.toFixed(4) + ',' + p.lat.toFixed(4);
+      var info = adcodeCache[key];
+      var groupKey;
+      if (info && info.adcode) {
+        groupKey = info.adcode;
+        if (cityMap[groupKey]) return;
+        cityMap[groupKey] = { adcode: groupKey, city: info.city || p.name, lng: p.lng, lat: p.lat };
+      } else {
+        groupKey = 'loc:' + key;
+        if (cityMap[groupKey]) return;
+        cityMap[groupKey] = { adcode: groupKey, city: p.name, lng: p.lng, lat: p.lat };
+        /* 兜底：把伪 adcode 写入缓存，避免下次重复排队 regeo */
+        adcodeCache[key] = { adcode: groupKey, city: p.name };
+      }
     });
     var pending = Object.values(cityMap).filter(function(it) {
       var w = weatherCache[it.adcode];
@@ -3534,7 +3812,29 @@ function ensureDayWeatherLoaded(day, callback) {
 function openOverviewTripTip() {
   openTripTipModal('<div style="color:#a0aec0;padding:24px 0;text-align:center;"><div class="spinner" style="margin:0 auto 10px;"></div>正在汇总整个行程的天气与旅途信息...</div>');
   ensureAllDaysWeatherLoaded(function() {
-    openTripTipModal(buildTripSummaryHtml());
+    /* AI 已配置：优先由 AI 生成总览旅途提示；未配置/失败走内置板块 */
+    if (GITHUB_CONFIG.hasAi()) {
+      buildOverviewTipWithAI(function(html) { openTripTipModal(html); });
+    } else {
+      openTripTipModal(buildTripSummaryHtml());
+    }
+  });
+}
+
+/* AI 生成总览旅途提示（预留）：构造全程行程摘要 → callLLM → 失败回退内置板块 */
+function buildOverviewTipWithAI(callback) {
+  var lines = (trip.days || []).map(function(d) {
+    var pois = (d.pois || []).map(function(p) { return (p.time || '') + ' ' + p.name; }).join('、');
+    return 'DAY' + d.day + '（' + (d.title || '') + '）：' + pois;
+  }).join('\n');
+  var prompt = '自驾游行程总览如下：\n' + lines +
+    '\n请撰写整段旅程的旅途提示：总体穿衣建议、全程驾驶与路况注意、必带物品、注意事项、美食与体验亮点，条目化，300字以内，只返回纯文本。';
+  callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', prompt, function(text) {
+    if (text) {
+      callback('<div style="line-height:1.8;font-size:13px;white-space:pre-wrap;color:#333;">' + escapeHtml(text) + '</div>');
+      return;
+    }
+    callback(buildTripSummaryHtml());
   });
 }
 
@@ -3579,8 +3879,8 @@ function buildDayTripTipModalContent(day) {
   (d.pois || []).forEach(function(p) {
     if (f) return;
     if (!p.lng || !p.lat) return;
-    var info = adcodeCache[p.lng.toFixed(4) + ',' + p.lat.toFixed(4)];
-    if (info) f = getDayForecast(info.adcode, day);
+    var w = getWeatherCacheForPOI(p);
+    if (w) f = getDayForecastFromCache(w, day);
   });
 
   var t = f ? parseInt(f.dayTemp) : null, nt = f ? parseInt(f.nightTemp) : null;
@@ -3845,14 +4145,8 @@ function renderOverviewMap() {
     drawOverviewDayRoute(dayPoints, color);
   });
 
-  // 适配视图
-  try {
-    if (allPoints.length > 0) {
-      setTimeout(function() {
-        try { map.setFitView(markers, false, [80, 80, 80, 80]); } catch(e) {}
-      }, 1500);
-    }
-  } catch(e) {}
+  // 适配视图：选天后直接复用 ⤢ 图标的视野（与右上角按钮展示面积完全一致）
+  doFitView();
 }
 
 // 总览地图：逐段获取真实驾车路线（失败重试不同策略，统一虚线样式）
@@ -3970,7 +4264,14 @@ function renderTimeline(day) {
       '<button class="start-loc-btn" onclick="openStartModal(' + day + ')">设置起点</button>' +
     '</div>' +
     '<div class="poi-list">' +
-      dayData.pois.map((poi, i) => renderPOICard(day, i, poi)).join('') +
+      (function() {
+        var lastShown = null;   /* 连续对比去重：同区域内（≤10km）只显示一次天气 */
+        return dayData.pois.map(function(poi, i) {
+          var showW = shouldShowWeather(poi, lastShown);
+          if (showW) lastShown = poi;
+          return renderPOICard(day, i, poi, showW);
+        }).join('');
+      })() +
     '</div>';
 
   panel.querySelectorAll('.poi-card').forEach(card => {
@@ -3981,6 +4282,8 @@ function renderTimeline(day) {
       /* 点击的是按钮或链接则不触发详情 */
       if (e.target.closest('button, a, .edit-actions, .poi-side-actions')) return;
       e.stopPropagation();
+      const poi = trip.days.find(x => x.day === d).pois[idx];
+      if (poi) focusPOIOnMap(poi.lng, poi.lat);   /* 地图放大到该地点区域 */
       showPOIDetail(d, idx);
     });
   });
@@ -3998,19 +4301,28 @@ function editDayField(day, field, value) {
   }
 }
 
-function renderPOICard(day, i, poi) {
+/* 连续对比去重：某 POI 与"上一个显示天气的 POI"直线距离 ≤10km 时不再重复显示天气（同区域只显示一次） */
+function shouldShowWeather(poi, lastShown) {
+  if (!poi || !poi.lng || !poi.lat) return false;
+  if (lastShown && lastShown.lng && lastShown.lat) {
+    if (distanceKm(poi.lat, poi.lng, lastShown.lat, lastShown.lng) <= 10) return false;
+  }
+  return true;
+}
+
+function renderPOICard(day, i, poi, showWeather) {
   const imgPart = poi.img
     ? '<img src="' + escapeHtml(poi.img) + '" alt="' + escapeHtml(poi.name) + '" onerror="this.parentElement.innerHTML=\'<div class=poi-thumb-placeholder><svg class=icon><use xlink:href=#icon-location/></svg></div>\'">'
     : '<div class="poi-thumb-placeholder"><svg class="icon"><use xlink:href="#icon-location"/></svg></div>';
   const detailPart = poi.detail
     ? '<div class="poi-detail" id="detail-' + day + '-' + i + '">' + poi.detail.split(/\n/).map(p => '<p>' + escapeHtml(p) + '</p>').join('') + '</div>'
     : '';
-  /* 天气显示：地址类始终显示；美食/购物仅在 10km 内无地址类 POI 时显示（避免区域天气缺失） */
-  const weatherPart = needWeatherForPOI(poi)
+  /* 天气显示：与上一个显示天气的 POI 直线距离 ≤10km 则不重复显示（连续对比去重） */
+  const weatherPart = showWeather
     ? '<div class="poi-weather" id="weather-' + day + '-' + i + '"><div class="poi-weather-loading">天气加载中...</div></div>'
     : '';
-  /* 海拔信息：逻辑同天气——地址类始终显示；美食/购物仅在 10km 内无地址类 POI 时显示（避免区域信息缺失） */
-  const altitudePart = needWeatherForPOI(poi)
+  /* 海拔信息：逻辑同天气 */
+  const altitudePart = showWeather
     ? (poi.altitude
         ? '<span class="poi-alt-pill"><svg class="icon" style="font-size:10px;"><use xlink:href="#icon-mountain"/></svg> ' + poi.altitude + 'm</span>'
         : '<span class="poi-alt-pill poi-alt-empty"><svg class="icon" style="font-size:10px;"><use xlink:href="#icon-mountain"/></svg> 海拔未填</span>')
@@ -4185,27 +4497,32 @@ function mergeForecasts(primary, secondary) {
 function fetchAmapWeather(adcode, callback) {
   var url = 'https://restapi.amap.com/v3/weather/weatherInfo?key=' + AMAP_KEY +
     '&city=' + adcode + '&extensions=all';
-  fetch(url).then(function(r) { return r.json(); }).then(function(data) {
-    if (data && data.status === '1' && data.forecasts && data.forecasts.length > 0 &&
-        data.forecasts[0].casts && data.forecasts[0].casts.length > 0) {
-      var casts = data.forecasts[0].casts;
-      var forecasts = casts.map(function(c) {
-        return {
-          date: c.date,
-          week: c.week,
-          dayWeather: c.dayweather || '',
-          nightWeather: c.nightweather || '',
-          dayTemp: c.daytemp,
-          nightTemp: c.nighttemp,
-          dayWind: (c.daywind || '') + (c.daypower ? ' ' + c.daypower + '级' : '')
-        };
-      });
-      callback(forecasts);
-    } else {
+  /* 同样走串行队列，避免与逆地理编码并发撞 QPS */
+  amapQueueReq(function(done) {
+    fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+      if (data && data.status === '1' && data.forecasts && data.forecasts.length > 0 &&
+          data.forecasts[0].casts && data.forecasts[0].casts.length > 0) {
+        var casts = data.forecasts[0].casts;
+        var forecasts = casts.map(function(c) {
+          return {
+            date: c.date,
+            week: c.week,
+            dayWeather: c.dayweather || '',
+            nightWeather: c.nightweather || '',
+            dayTemp: c.daytemp,
+            nightTemp: c.nighttemp,
+            dayWind: (c.daywind || '') + (c.daypower ? ' ' + c.daypower + '级' : '')
+          };
+        });
+        callback(forecasts);
+      } else {
+        callback(null);
+      }
+      done();
+    }).catch(function() {
       callback(null);
-    }
-  }).catch(function() {
-    callback(null);
+      done();
+    });
   });
 }
 
@@ -4238,10 +4555,12 @@ function fetchOpenMeteo(lng, lat, callback) {
   });
 }
 
-/* 加载某天所有 POI 的天气 */
+/* 加载某天所有 POI 的天气（连续对比去重，与卡片渲染一致） */
 function loadWeatherForDay(pois, day) {
+  var lastShown = null;
   pois.forEach(function(poi, i) {
-    if (!needWeatherForPOI(poi)) return;
+    if (!shouldShowWeather(poi, lastShown)) return;
+    lastShown = poi;
     loadWeatherForPOI(day, i, poi);
   });
 }
@@ -4249,37 +4568,65 @@ function loadWeatherForDay(pois, day) {
 /* 获取某个 POI 的天气并渲染到卡片 */
 /* 用 REST API 逆地理编码获取 adcode（不依赖 JS API，避免 file:// 协议和域名白名单限制） */
 /* 城市名称细化到最小行政单位：优先用 township（乡镇），其次 district（区县） */
+/* ===== 高德 REST 串行队列：总览/卡片批量加载时防止并发撞 QPS 限流（个人 key QPS≈3） ===== */
+var amapReqQueue = [];
+var amapReqRunning = false;
+function amapQueueReq(fn) {
+  amapReqQueue.push(fn);
+  if (!amapReqRunning) amapRunNext();
+}
+function amapRunNext() {
+  if (amapReqRunning) return;
+  var next = amapReqQueue.shift();
+  if (!next) { amapReqRunning = false; return; }
+  amapReqRunning = true;
+  try {
+    next(function() {
+      amapReqRunning = false;
+      setTimeout(amapRunNext, 350);   // 间隔 350ms，实际 QPS ≈ 2.8，留有余量
+    });
+  } catch(e) {
+    amapReqRunning = false;
+    setTimeout(amapRunNext, 350);
+  }
+}
+
 function fetchAdcodeByRest(lng, lat, callback) {
   /* poitype 扩展返回乡镇信息，radius=200 精确到最近点 */
   var url = 'https://restapi.amap.com/v3/geocode/regeo?location=' + lng + ',' + lat + '&key=' + AMAP_KEY + '&extensions=base&output=JSON&radius=200&poitype=&roadlevel=0';
-  fetch(url).then(function(r) { return r.json(); }).then(function(data) {
-    if (data.status === '1' && data.regeocode) {
-      var addrComp = data.regeocode.addressComponent;
-      var adcode = addrComp.adcode || '';
-      /* 优先使用 township（乡镇/街道），其次 district（区县），再次 city，最后 province */
-      var township = (typeof addrComp.township === 'string' && addrComp.township) ? addrComp.township : '';
-      var district = (typeof addrComp.district === 'string' && addrComp.district) ? addrComp.district : '';
-      var city = (typeof addrComp.city === 'string' && addrComp.city) ? addrComp.city : '';
-      var province = (typeof addrComp.province === 'string' && addrComp.province) ? addrComp.province : '';
-      /* 拼接显示名：乡镇 + 区县（如"冷碛镇 · 泸定县"），便于识别 */
-      var displayName = '';
-      if (township && district) {
-        displayName = township + ' · ' + district;
-      } else if (township) {
-        displayName = township;
-      } else if (district) {
-        displayName = district;
-      } else if (city) {
-        displayName = city;
-      } else if (province) {
-        displayName = province;
+  /* 经全局串行队列发出：避免总览批量加载时并发撞高德 QPS 限流 */
+  amapQueueReq(function(done) {
+    fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+      if (data.status === '1' && data.regeocode) {
+        var addrComp = data.regeocode.addressComponent;
+        var adcode = addrComp.adcode || '';
+        /* 优先使用 township（乡镇/街道），其次 district（区县），再次 city，最后 province */
+        var township = (typeof addrComp.township === 'string' && addrComp.township) ? addrComp.township : '';
+        var district = (typeof addrComp.district === 'string' && addrComp.district) ? addrComp.district : '';
+        var city = (typeof addrComp.city === 'string' && addrComp.city) ? addrComp.city : '';
+        var province = (typeof addrComp.province === 'string' && addrComp.province) ? addrComp.province : '';
+        /* 拼接显示名：乡镇 + 区县（如"冷碛镇 · 泸定县"），便于识别 */
+        var displayName = '';
+        if (township && district) {
+          displayName = township + ' · ' + district;
+        } else if (township) {
+          displayName = township;
+        } else if (district) {
+          displayName = district;
+        } else if (city) {
+          displayName = city;
+        } else if (province) {
+          displayName = province;
+        }
+        callback({ adcode: adcode, city: displayName, township: township, district: district });
+      } else {
+        callback(null);
       }
-      callback({ adcode: adcode, city: displayName, township: township, district: district });
-    } else {
+      done();
+    }).catch(function() {
       callback(null);
-    }
-  }).catch(function() {
-    callback(null);
+      done();
+    });
   });
 }
 
@@ -4293,9 +4640,9 @@ function loadWeatherForPOI(day, index, poi) {
   /* 通过 REST API 逆地理编码获取 adcode（不依赖 JS API） */
   fetchAdcodeByRest(poi.lng, poi.lat, function(info) {
     if (info && info.adcode) {
-      var displayName = info.city || poi.name;
-      adcodeCache[key] = { adcode: info.adcode, city: displayName };
-      renderWeatherByAdcode(day, index, { adcode: info.adcode, city: displayName }, poi);
+      var regionName = info.township || info.district || info.city || poi.name;   /* 卡片天气标签用区/乡镇名 */
+      adcodeCache[key] = { adcode: info.adcode, city: regionName };
+      renderWeatherByAdcode(day, index, { adcode: info.adcode, city: regionName }, poi);
     } else {
       showWeatherError(day, index, '无法定位城市');
     }
@@ -4402,13 +4749,17 @@ function renderWeatherSummary() {
     return;
   }
 
-  /* 收集需要显示天气的 POI：地址类（含出发地）始终加入；美食/购物仅在 10km 内无地址类时加入 */
+  /* 收集需要显示天气的 POI：连续对比去重——与上一个显示天气的 POI 直线距离 ≤10km 则跳过（同区域只显示一次） */
   var poiList = [];
   var firstSeen = {};  /* 记录每个地址（lng,lat）首次出现的顺序 */
   var orderCounter = 0;
+  var lastShown = null;
   trip.days.forEach(function(d) {
     (d.pois || []).forEach(function(p) {
-      if (!needWeatherForPOI(p)) return;
+      if (!p.lng || !p.lat) return;
+      if (lastShown && lastShown.lng && lastShown.lat &&
+          distanceKm(p.lat, p.lng, lastShown.lat, lastShown.lng) <= 10) return;   /* 同区域合并 */
+      lastShown = p;
       var key = p.lng.toFixed(4) + ',' + p.lat.toFixed(4);
       if (!(key in firstSeen)) {
         firstSeen[key] = ++orderCounter;
@@ -4433,48 +4784,74 @@ function renderWeatherSummary() {
 
   /* 按 adcode 分组：同一 adcode 的 POI 合并为一个城市卡片（实现"近邻目的地合并"） */
   var cityGroups = {}; /* adcode -> { city, adcode, pois:[] } */
-  var pendingCount = poiList.length;
+  var pendingCount = 0;
 
   function checkAllDone() {
     pendingCount--;
-    if (pendingCount === 0) renderWeatherSummaryList(cityGroups, poiList.length);
+    if (pendingCount <= 0) renderWeatherSummaryList(cityGroups, poiList.length);
   }
 
+  /* 预取所有坐标的 adcode（去重：同一坐标只调一次逆地理编码，避免重复排队拖慢加载） */
+  var coordKeys = [];
+  var coordSeen = {};
   poiList.forEach(function(poi) {
     var key = poi.lng.toFixed(4) + ',' + poi.lat.toFixed(4);
+    if (!coordSeen[key]) { coordSeen[key] = true; coordKeys.push(key); }
+  });
+  var coordInfoMap = {};
+  var coordDone = 0;
+  function ensureCoords(cb) {
+    if (coordKeys.length === 0) { cb(); return; }
+    coordKeys.forEach(function(key) {
+      if (adcodeCache[key]) {
+        coordInfoMap[key] = adcodeCache[key];
+        coordDone++;
+        if (coordDone === coordKeys.length) cb();
+        return;
+      }
+      var poi0 = null;
+      for (var i = 0; i < poiList.length; i++) {
+        if (poiList[i].lng.toFixed(4) + ',' + poiList[i].lat.toFixed(4) === key) { poi0 = poiList[i]; break; }
+      }
+      fetchAdcodeByRest(poi0.lng, poi0.lat, function(info) {
+        if (info && info.adcode) {
+          /* 标题用区/乡镇名（乡镇优先、其次区县），避免显示地点卡片名称 */
+          var region = info.township || info.district || info.city || poi0.name;
+          adcodeCache[key] = { adcode: info.adcode, city: region };
+          coordInfoMap[key] = adcodeCache[key];
+        } else {
+          var fallback = { adcode: 'loc:' + key, city: '途经区域' };
+          adcodeCache[key] = fallback;   /* 兜底写入缓存，下次 ensureCoords 直接命中 */
+          coordInfoMap[key] = fallback;
+        }
+        coordDone++;
+        if (coordDone === coordKeys.length) cb();
+      });
+    });
+  }
 
-    function addToGroup(adcodeInfo) {
+  ensureCoords(function() {
+    /* 全部坐标就绪后，把每个 POI 加入对应城市分组；同一城市只拉一次天气（_fetched 防重复） */
+    poiList.forEach(function(poi) {
+      var key = poi.lng.toFixed(4) + ',' + poi.lat.toFixed(4);
+      var adcodeInfo = coordInfoMap[key] || { adcode: 'loc:' + key, city: poi.name };
       var adcode = adcodeInfo.adcode;
       var city = adcodeInfo.city;
       if (!cityGroups[adcode]) {
-        cityGroups[adcode] = { city: city, adcode: adcode, pois: [], lng: poi.lng, lat: poi.lat };
+        cityGroups[adcode] = { city: city, adcode: adcode, pois: [], lng: poi.lng, lat: poi.lat, _fetched: false };
       }
       cityGroups[adcode].pois.push({ name: poi.name, day: poi.day, type: poi.type, firstOrder: poi.firstOrder });
-
-      /* 已有天气缓存，直接判定完成 */
-      if (weatherCache[adcode]) {
-        checkAllDone();
-      } else {
-        /* 拉取天气数据（使用 Open-Meteo 获取10天预报） */
-        fetchWeatherForSummary(adcode, city, cityGroups[adcode].lng, cityGroups[adcode].lat, checkAllDone);
-      }
-    }
-
-    /* 优先使用缓存的 adcode */
-    if (adcodeCache[key]) {
-      addToGroup(adcodeCache[key]);
-    } else {
-      /* 用 REST API 逆地理编码获取 adcode（不依赖 JS API） */
-      fetchAdcodeByRest(poi.lng, poi.lat, function(info) {
-        if (info && info.adcode) {
-          var city = info.city || poi.name;
-          adcodeCache[key] = { adcode: info.adcode, city: city };
-          addToGroup({ adcode: info.adcode, city: city });
-        } else {
+      if (!cityGroups[adcode]._fetched) {
+        cityGroups[adcode]._fetched = true;
+        pendingCount++;
+        if (weatherCache[adcode]) {
           checkAllDone();
+        } else {
+          fetchWeatherForSummary(adcode, city, cityGroups[adcode].lng, cityGroups[adcode].lat, checkAllDone);
         }
-      });
-    }
+      }
+    });
+    if (pendingCount === 0) renderWeatherSummaryList(cityGroups, poiList.length);
   });
 }
 
@@ -4552,8 +4929,14 @@ function renderWeatherSummaryList(cityGroups, totalPoiCount) {
     html += '<div class="weather-city-sub">包含：' + poiNamesHtml + '</div>';
 
     if (weather && weather.forecasts && weather.forecasts.length > 0) {
-      /* 显示前7天预报 */
-      var displayForecasts = weather.forecasts.slice(0, 7);
+      /* 显示 7 天预报：优先从行程第一天对应日期开始（覆盖整个行程），预报覆盖不到时回退前 7 天 */
+      var day1 = getDayDate(1);
+      var startIdx = -1;
+      for (var fi = 0; fi < weather.forecasts.length; fi++) {
+        if (weather.forecasts[fi].date === day1) { startIdx = fi; break; }
+      }
+      var displayForecasts = startIdx >= 0 ? weather.forecasts.slice(startIdx, startIdx + 7)
+                                           : weather.forecasts.slice(0, 7);
       html += '<div class="weather-city-days">';
       displayForecasts.forEach(function(f) {
         var dateStr = f.date ? f.date.substring(5) : '';
@@ -5197,6 +5580,7 @@ function renderMap(day) {
       title: poi.name
     });
     marker.on('click', () => {
+      focusPOIOnMap(poi.lng, poi.lat);   /* 点击图标：地图放大到该地点区域 */
       showPOIDetail(day, i);
     });
     markers.push(marker);
@@ -5206,23 +5590,14 @@ function renderMap(day) {
   // 真实驾车路线
   drawDrivingRoute(dayData);
 
-  // 适配视图
-  const allPoints = [];
-  if (sl && sl.lng && sl.lat) allPoints.push([sl.lng, sl.lat]);
-  pois.forEach(p => allPoints.push([p.lng, p.lat]));
-  if (allPoints.length) {
-    const lngs = allPoints.map(p => p[0]);
-    const lats = allPoints.map(p => p[1]);
-    if (AMap.Bounds) {
-      try {
-        const bounds = new AMap.Bounds([Math.min(...lngs) - 0.02, Math.min(...lats) - 0.02], [Math.max(...lngs) + 0.02, Math.max(...lats) + 0.02]);
-        map.setBounds(bounds);
-      } catch(e) {
-        map.setFitView(markers.concat(startMarker ? [startMarker] : []), false, [60,60,60,60]);
-      }
-    } else {
-      map.setFitView(markers.concat(startMarker ? [startMarker] : []), false, [60,60,60,60]);
-    }
+  // 适配视图：优先用 polyline 路径（含弯曲路段）计算完整范围；否则用 POI marker + 起点
+  // padding 加大并限制 maxZoom=14，确保当天所有路段 + 标注完整展示，一步到位无需手动点适应键
+  if (polyline) {
+    try { map.setFitView([polyline], false, [120, 80, 80, 80], 14); return; } catch(e) {}
+  }
+  var all = markers.concat(startMarker ? [startMarker] : []);
+  if (all.length) {
+    try { map.setFitView(all, false, [80, 80, 80, 80], 14); } catch(e) {}
   }
 }
 
@@ -5417,19 +5792,26 @@ function drawRouteSegment(points, isReal, segInfo, segIndex) {
           var navUrlSeg = 'https://uri.amap.com/navigation?from=' + segInfo.startPos[0] + ',' + segInfo.startPos[1] + ',' + encodeURIComponent(segInfo.startName)
                         + '&to=' + segInfo.endPos[0] + ',' + segInfo.endPos[1] + ',' + encodeURIComponent(segInfo.endName)
                         + '&mode=car&coordinate=wgs84&callnative=1';
-          var infoHtml =
-            '<div style="padding:10px 12px;min-width:220px;max-width:280px;font-size:11px;line-height:1.5;color:#2d3748;">' +
+          /* 估算该段路程与用时：基于起点/终点坐标的直线距离（*1.3 道路系数 + 60km/h） */
+          var legD = distanceKm(segInfo.startPos[1], segInfo.startPos[0], segInfo.endPos[1], segInfo.endPos[0]);
+          var legKm = (legD * 1.3).toFixed(1);
+          var legMin = Math.round(legD * 1.3 / 60 * 60);
+          var legStr = legMin >= 60 ? Math.floor(legMin/60) + 'h' + (legMin % 60 ? legMin % 60 + 'm' : '') : legMin + 'm';
+var infoHtml =
+            '<div style="padding:10px 12px;min-width:220px;max-width:300px;font-size:11px;line-height:1.5;color:#2d3748;">' +
               '<div style="font-size:11px;font-weight:700;color:#1a202c;margin-bottom:6px;display:flex;align-items:center;gap:6px;">' +
                 '<span style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;font-size:9px;padding:2px 7px;border-radius:8px;letter-spacing:0.5px;">本段行程</span>' +
               '</div>' +
               '<div style="display:flex;align-items:center;gap:6px;margin-bottom:3px;">' +
                 '<div style="width:8px;height:8px;background:#00d4aa;border-radius:50%;flex-shrink:0;"></div>' +
                 '<div style="font-size:11px;color:#1a202c;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + escapeHtml(segInfo.startName) + '</div>' +
+                '<div style="font-size:10px;color:#4a5568;font-weight:700;flex-shrink:0;padding-left:6px;white-space:nowrap;">里程 ' + legKm + ' km</div>' +
               '</div>' +
               '<div style="border-left:1.5px dashed #cbd5e1;height:10px;margin-left:3.5px;"></div>' +
               '<div style="display:flex;align-items:center;gap:6px;margin-bottom:8px;">' +
                 '<div style="width:8px;height:8px;background:#f093fb;border-radius:50%;flex-shrink:0;"></div>' +
                 '<div style="font-size:11px;color:#1a202c;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;">' + escapeHtml(segInfo.endName) + '</div>' +
+                '<div style="font-size:10px;color:#4a5568;font-weight:700;flex-shrink:0;padding-left:6px;white-space:nowrap;">耗时 ' + legStr + '</div>' +
               '</div>' +
               '<a href="' + navUrlSeg + '" target="_blank" rel="noopener" onclick="event.stopPropagation()" ' +
                 'style="display:flex;align-items:center;justify-content:center;gap:4px;width:100%;padding:6px 10px;background:linear-gradient(135deg,#00d4aa,#0fb8a0);color:#fff;border:none;border-radius:6px;font-size:11px;font-weight:600;text-decoration:none;font-family:inherit;box-sizing:border-box;">' +
@@ -5628,6 +6010,20 @@ function drawStraightLine(points) {
 }
 
 /* ====================== POI 详情弹窗 ====================== */
+/* 点击地点卡片/地图图标：地图放大到该地点区域 */
+function focusPOIOnMap(lng, lat) {
+  if (typeof AMap === 'undefined' || !map) return;
+  if (!lng || !lat) return;
+  try { map.setZoomAndCenter(16, [parseFloat(lng), parseFloat(lat)]); } catch(e) {}
+  /* 移动端若地图面板隐藏，先切到地图视图 */
+  if (window.innerWidth < 768) {
+    try {
+      var mp = document.getElementById('mapPanel');
+      if (mp && mp.style.display === 'none') ensureMobileMapRender(currentDay);
+    } catch(e) {}
+  }
+}
+
 function showPOIDetail(day, index) {
   const dayData = trip.days.find(d => d.day === day);
   const poi = dayData.pois[index];
@@ -5672,10 +6068,13 @@ function toggleEditMode() {
   btn.classList.toggle('active', editMode);
   btn.innerHTML = editMode ? '<svg class="icon"><use xlink:href="#icon-check"/></svg>完成编辑' : '<svg class="icon"><use xlink:href="#icon-edit"/></svg>编辑';
   document.getElementById('resetBtn').style.display = editMode ? 'inline-flex' : 'none';
-  document.getElementById('addPOIBtn').style.display = editMode ? 'flex' : 'none';
   document.getElementById('changePwdBtn').style.display = editMode ? 'inline-flex' : 'none';
   document.getElementById('syncSettingsBtn').style.display = editMode ? 'inline-flex' : 'none';
   document.getElementById('tableEditBtn').style.display = editMode ? 'inline-flex' : 'none';
+  document.getElementById('fcToggleBtn').style.display = editMode ? 'inline-flex' : 'none';
+  /* 编辑模式隐藏天气按钮（减少功能键干扰），退出恢复 */
+  var weatherBtnEl = document.getElementById('weatherBtn');
+  if (weatherBtnEl) weatherBtnEl.style.display = editMode ? 'none' : '';
   if (editMode) {
     if (!GITHUB_CONFIG.hasToken()) {
       showToast('未配置 Token，请点击"同步设置"配置后再编辑保存');
@@ -5760,6 +6159,7 @@ document.getElementById('editAddr').addEventListener('keydown', function(e) {
   if (e.key === 'Enter') { e.preventDefault(); searchPoiAddress(); }
 });
 document.getElementById('editAutoFillBtn').addEventListener('click', autoFillPoiInfo);
+document.getElementById('daySmartBtn').addEventListener('click', function() { smartGenDayTitle(dayEditCurrentDay); });
 
 /* 隐藏字段用于存储搜索得到的坐标 */
 var editPoiLng = 0, editPoiLat = 0;
@@ -6197,6 +6597,21 @@ function autoFillPoiInfo() {
     var descObj = generatePoiDescription(poiType, p, originalName);
     document.getElementById('editDesc').value = descObj.short;
     document.getElementById('editDetail').value = descObj.detail;
+    // AI 已配置：异步用 AI 优化简介（成功覆盖模板，失败保持模板）
+    if (GITHUB_CONFIG.hasAi()) {
+      callLLM(
+        '你是资深旅游编辑。为行程中的地点生成简介，严格只返回一个 JSON 对象，不要任何多余文字：' +
+        '{"short":"一句话亮点（不超过25字，突出最大特点）","detail":"详细介绍（150-250字，风格参考酒店官网简介/美食探店介绍）"}',
+        '地点名称：' + originalName + '；类型：' + poiType,
+        function(aiText) {
+          var obj = parseAIJson(aiText);
+          if (obj && obj.short && obj.detail) {
+            document.getElementById('editDesc').value = obj.short;
+            document.getElementById('editDetail').value = obj.detail;
+          }
+        }
+      );
+    }
     // 图片：从 detail 接口返回的所有照片中选取，第一张设默认，其余缓存供图片选择器使用
     var photos = [];
     if (p.photos && p.photos.length > 0) {
@@ -6320,6 +6735,145 @@ function generatePoiDescription(type, poi, keyword) {
   };
   var tpl = templates[type] || templates.scenic;
   return { short: tpl.short, detail: tpl.detail };
+}
+
+/* ===== 智能匹配简介：按名称搜索高德 → 生成简短描述+详细介绍（只填空字段，不覆盖手写内容） ===== */
+/* 搜索一个地点：多候选关键词（原名→去括号→去后缀），返回匹配的 POI 或 null */
+function smartSearchPoi(name, callback) {
+  var candidates = [name];
+  var cleaned = name.replace(/[（(][^）)]*[）)]/g, '').replace(/[（）()【】\[\]{}]/g, '').trim();
+  if (cleaned && cleaned !== name) candidates.push(cleaned);
+  var core = cleaned.replace(/(酒店|餐厅|饭馆|饭庄|餐馆|美食城|小吃|店|馆|中心|广场|公园|寺|庙)$/, '').trim();
+  if (core && core !== cleaned && core.length >= 2) candidates.push(core);
+  var uniq = [];
+  candidates.forEach(function(c) { if (c && uniq.indexOf(c) === -1) uniq.push(c); });
+
+  function trySearch(idx) {
+    if (idx >= uniq.length) { callback(null); return; }
+    var kw = uniq[idx];
+    var url = 'https://restapi.amap.com/v3/place/text?keywords=' + encodeURIComponent(kw) + '&key=' + AMAP_KEY + '&offset=5&page=1&extensions=all';
+    amapQueueReq(function(done) {
+      fetch(url).then(function(r) { return r.json(); }).then(function(data) {
+        done();
+        if (data && data.status === '1' && data.pois && data.pois.length > 0) {
+          var pois = data.pois;
+          var p = pois[0];
+          /* 名称相似度校验：候选名与 POI 名互相包含（或核心词匹配）才认为可信 */
+          var pName = (p.name || '').replace(/\s/g, '');
+          var kwNorm = kw.replace(/\s/g, '');
+          var ok = pName.indexOf(kwNorm) !== -1 || kwNorm.indexOf(pName) !== -1 ||
+                   (kwNorm.length >= 2 && pName.indexOf(kwNorm.slice(0, 2)) !== -1);
+          if (ok) { callback(p); return; }
+          /* 第一条不匹配，遍历剩余候选 */
+          for (var i = 1; i < pois.length; i++) {
+            var pn = (pois[i].name || '').replace(/\s/g, '');
+            if (pn.indexOf(kwNorm) !== -1 || kwNorm.indexOf(pn) !== -1) { callback(pois[i]); return; }
+          }
+          trySearch(idx + 1);
+        } else {
+          trySearch(idx + 1);
+        }
+      }).catch(function() { done(); trySearch(idx + 1); });
+    });
+  }
+  trySearch(0);
+}
+
+/* 匹配单个 POI 的简介（只填空字段），返回 Promise<是否填充了内容> */
+function smartMatchPoiDesc(poi) {
+  return new Promise(function(resolve) {
+    if (poi.desc && poi.detail) { resolve(false); return; }
+    var name = (poi.name || '').trim();
+    if (!name) { resolve(false); return; }
+    /* 填充辅助：只填空字段 */
+    function fillFromObj(obj) {
+      var changed = false;
+      if (!poi.desc && obj && obj.short) { poi.desc = obj.short; changed = true; }
+      if (!poi.detail && obj && obj.detail) { poi.detail = obj.detail; changed = true; }
+      return changed;
+    }
+    /* 兜底：高德搜索 + 模板生成 */
+    function fallbackLocal() {
+      smartSearchPoi(name, function(p) {
+        if (!p) { resolve(false); return; }
+        resolve(fillFromObj(generatePoiDescription(poi.type || 'scenic', p, name)));
+      });
+    }
+    /* AI 优先：配置了 AI 且能返回合理 JSON 才用，否则回退本地 */
+    callLLM(
+      '你是资深旅游编辑。为行程中的地点生成简介，严格只返回一个 JSON 对象，不要任何多余文字：' +
+      '{"short":"一句话亮点（不超过25字，突出最大特点）","detail":"详细介绍（150-250字，风格参考酒店官网简介/美食探店介绍，包含特色、体验感、适合人群）"}',
+      '地点名称：' + name + '；类型：' + (poi.type || '未指定') +
+      (poi.lng ? '；坐标：' + poi.lng + ',' + poi.lat : ''),
+      function(aiText) {
+        var obj = parseAIJson(aiText);
+        if (obj && obj.short && obj.detail) { resolve(fillFromObj(obj)); return; }
+        fallbackLocal();
+      }
+    );
+  });
+}
+
+/* 批量匹配全部 POI 简介（串行执行，只填空），dataSource 默认 trip；完成回调 matched 数量 */
+function batchSmartMatchAll(dataSource, callback) {
+  if (typeof dataSource === 'function') { callback = dataSource; dataSource = null; }
+  var data = dataSource || trip;
+  var all = [];
+  (data.days || []).forEach(function(d) {
+    (d.pois || []).forEach(function(p) { all.push(p); });
+  });
+  var idx = 0, matched = 0, skipped = 0;
+  function next() {
+    if (idx >= all.length) {
+      showToast('匹配完成：新增简介 ' + matched + ' 个' + (skipped ? '，跳过 ' + skipped + ' 个' : ''));
+      if (callback) callback(matched);
+      return;
+    }
+    var poi = all[idx++];
+    smartMatchPoiDesc(poi).then(function(changed) {
+      if (changed) matched++; else skipped++;
+      if (idx % 5 === 0 || idx === all.length) {
+        showToast('正在匹配简介 ' + idx + '/' + all.length + '...');
+      }
+      next();
+    });
+  }
+  if (all.length === 0) { showToast('暂无地点可匹配'); return; }
+  showToast('开始批量匹配简介（' + all.length + ' 个地点）...');
+  next();
+}
+
+/* DAY 标题/描述自动生成（AI 优先，失败/未配置用模板：取当天首尾 POI 拼装） */
+function smartGenDayTitle(dayNum) {
+  var d = trip.days.find(function(x) { return x.day === dayNum; });
+  if (!d) return;
+  var poiNames = (d.pois || []).map(function(p) { return p.name; }).filter(Boolean);
+  var nameList = poiNames.join('、');
+  function fill(obj) {
+    if (!obj) return;
+    if (obj.title) document.getElementById('dayEditTitle').value = obj.title;
+    if (obj.desc) document.getElementById('dayEditDesc').value = obj.desc;
+  }
+  function templateGen() {
+    var first = poiNames[0] || '';
+    var last = poiNames[poiNames.length - 1] || '';
+    var title = (first && last && first !== last) ? (first + ' → ' + last) : (first || ('DAY ' + dayNum));
+    fill({ title: title, desc: nameList ? ('本日途经：' + nameList) : '' });
+  }
+  if (GITHUB_CONFIG.hasAi()) {
+    callLLM(
+      '你是资深旅行规划师，为自驾游的某一天生成标题与简介。严格只返回 JSON：{"title":"简短标题(不超过14字，像"DAY2 远行·滇东序曲"那样有诗意的短句)","desc":"一句话描述当天行程(30字以内)"}',
+      '第 ' + dayNum + ' 天的目的地依次为：' + nameList,
+      function(text) {
+        var obj = parseAIJson(text);
+        if (obj && (obj.title || obj.desc)) { fill(obj); showToast('✅ 已生成当天标题与描述'); }
+        else { templateGen(); showToast('已用模板生成标题与描述'); }
+      }
+    );
+  } else {
+    templateGen();
+    showToast('已用模板生成标题与描述');
+  }
 }
 
 function searchPoiAddress() {
@@ -6447,15 +7001,7 @@ function deletePOI(day, index) {
   showToast('已删除');
 }
 
-/* ====================== 添加 POI ====================== */
-document.getElementById('addPOIBtn').addEventListener('click', () => {
-  const newPOI = { time:'00:00', type:'scenic', name:'新地点', desc:'描述', detail:'', lat:29.5, lng:100.0, altitude:0 };
-  trip.days[currentDay - 1].pois.push(newPOI);
-  saveData();
-  renderTimeline(currentDay);
-  ensureMobileMapRender(currentDay);
-  showToast('已添加新 POI，请点击编辑修改');
-});
+// addPOIBtn 浮动按钮已移除；地图右上角浮动按钮仅保留 ⤢ 适配视图（编辑/非编辑模式一致）
 
 /* ====================== 起点设置 ====================== */
 function openStartModal(day) {
@@ -6699,11 +7245,11 @@ function clearAllExpenses() {
 }
 
 /* ====================== 分享 ====================== */
-document.getElementById('shareBtn').addEventListener('click', async function() {
-  // 云端同步模式：导出 HTML 文件发给别人，对方打开后自动从云端拉取最新行程
-  showToast('正在生成分享网页，对方打开后将自动同步您的最新修改');
-  exportFullHTML();
-});
+// shareBtn 按钮已移除（功能并入网页发布/链接分享）
+
+/* ====================== 导入 / 导出 ====================== */
+// exportBtn 按钮已移除（功能代码保留以便以后用）
+
 function fallbackCopy(text) {
   const ta = document.createElement('textarea');
   ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
@@ -6712,16 +7258,6 @@ function fallbackCopy(text) {
   catch(e) { showToast('请手动复制地址栏链接分享'); }
   document.body.removeChild(ta);
 }
-
-/* ====================== 导入 / 导出 ====================== */
-document.getElementById('exportBtn').addEventListener('click', function() {
-  var choice = confirm('点击"确定"导出完整网页（含行程数据，可直接发给别人打开）\n点击"取消"导出 JSON 数据文件（用于备份/导入）');
-  if (choice) {
-    exportFullHTML();
-  } else {
-    exportJSON();
-  }
-});
 
 function exportJSON() {
   const data = JSON.stringify(trip, null, 2);
@@ -6757,51 +7293,19 @@ function exportFullHTML() {
   showToast('已导出完整网页，可发送给他人直接打开');
 }
 
-document.getElementById('importBtn').addEventListener('click', function() {
-  document.getElementById('importFile').click();
-});
-document.getElementById('importFile').addEventListener('change', function(e) {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(ev) {
-    try {
-      const obj = JSON.parse(ev.target.result);
-      if (!obj.days || !Array.isArray(obj.days) || !obj.days.length) throw new Error('数据格式错误');
-      // 清除旧 key
-      try { localStorage.removeItem(storageKey()); } catch(e){}
-      trip = {
-        tripName: obj.tripName || '导入的行程',
-        startDate: obj.startDate || '',
-        subtitle: obj.subtitle || '',
-        totalBudget: obj.totalBudget || 0,
-        expenses: Array.isArray(obj.expenses) ? obj.expenses : [],
-        days: obj.days
-      };
-      saveData();
-      currentDay = 0;
-      initTabs();
-      renderOverviewHome();
-      updateBadges();
-      showToast('行程已导入');
-    } catch(err) {
-      showToast('导入失败：' + err.message);
-    }
-  };
-  reader.readAsText(file);
-  e.target.value = '';
-});
+// importBtn 按钮已移除（导入功能代码一并移除）
 
 /* ====================== 适配视图按钮 ====================== */
-document.getElementById('fitViewBtn').addEventListener('click', function() {
-  if (AMap && map) {
-    const all = markers.concat(startMarker ? [startMarker] : []);
-    if (all.length) map.setFitView(all, false, [60,60,60,60]);
-  }
-});
+/* 适配视图：选天后调用此函数，保证与右上角 ⤢ 图标视野完全一致 */
+function doFitView() {
+  if (typeof AMap === 'undefined' || !map) return;
+  var all = markers.concat(startMarker ? [startMarker] : []);
+  if (all.length) map.setFitView(all, false, [60,60,60,60]);
+}
+document.getElementById('fitViewBtn').addEventListener('click', doFitView);
 
 /* ====================== 重置数据 ====================== */
-document.getElementById('resetBtn').addEventListener('click', function() {
+function doResetData() {
   if (!confirm('确定重置所有数据？这将恢复默认行程，所有编辑和花销记录将丢失。')) return;
   try { localStorage.removeItem(storageKey()); } catch(e){}
   trip = JSON.parse(JSON.stringify(defaultTrip));
@@ -6811,7 +7315,8 @@ document.getElementById('resetBtn').addEventListener('click', function() {
   renderOverviewHome();
   updateBadges();
   showToast('已重置为默认数据');
-});
+}
+document.getElementById('resetBtn').addEventListener('click', doResetData);
 
 /* ====================== 表格编辑 ====================== */
 var tableEditData = null;
@@ -7320,23 +7825,31 @@ function autoRecalcRouteForRow(dayIdx, poiIdx) {
 function renderBudgetSummary() {
   var el = document.getElementById('budgetSummaryContent');
   if (!el || !tableEditData) return;
-  var totalBudget = parseFloat(tableEditData.totalBudget) || 0;
-  var totalTolls = 0, totalCost = 0;
+  /* 按 POI 类型拆分费用：food/hotel → 住宿餐饮，scenic/shop → 门票及其他 */
+  var totalTolls = 0, totalFoodHotel = 0, totalTicketOther = 0;
   tableEditData.days.forEach(function(d) {
     (d.pois || []).forEach(function(p) {
       totalTolls += parseFloat(p.toll) || 0;
-      totalCost += parseFloat(p.cost) || 0;
+      var c = parseFloat(p.cost) || 0;
+      if (p.type === 'food' || p.type === 'hotel') totalFoodHotel += c;
+      else if (p.type === 'scenic' || p.type === 'shop') totalTicketOther += c;
     });
   });
-  var totalExpense = totalTolls + totalCost;
-  var remain = totalBudget - totalExpense;
-  var remainColor = remain >= 0 ? '#16a34a' : '#dc2626';
+  var fuelFee = parseFloat(tableEditData.fuelFee) || 0;
+  var totalExpense = fuelFee + totalTolls + totalFoodHotel + totalTicketOther;
   el.innerHTML =
-    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">总预算</div><div style="font-size:15px;font-weight:700;color:#2c5282;">¥' + totalBudget.toFixed(2) + '</div></div>' +
-    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">过路费合计</div><div style="font-size:15px;font-weight:700;color:#dd6b20;">¥' + totalTolls.toFixed(2) + '</div></div>' +
-    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">住宿餐饮等</div><div style="font-size:15px;font-weight:700;color:#805ad5;">¥' + totalCost.toFixed(2) + '</div></div>' +
-    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">预计总支出</div><div style="font-size:15px;font-weight:700;color:#e53e3e;">¥' + totalExpense.toFixed(2) + '</div></div>' +
-    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">结余</div><div style="font-size:15px;font-weight:700;color:' + remainColor + ';">¥' + remain.toFixed(2) + '</div></div>';
+    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">过路费</div><div style="font-size:15px;font-weight:700;color:#dd6b20;">¥' + totalTolls.toFixed(2) + '</div></div>' +
+    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">住宿及餐饮</div><div style="font-size:15px;font-weight:700;color:#805ad5;">¥' + totalFoodHotel.toFixed(2) + '</div></div>' +
+    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;"><div style="font-size:10px;color:#888;">门票及其他</div><div style="font-size:15px;font-weight:700;color:#d53f8c;">¥' + totalTicketOther.toFixed(2) + '</div></div>' +
+    '<div style="padding:5px 6px;background:#fff;border-radius:6px;text-align:center;border:1px solid #fbd38d;"><div style="font-size:10px;color:#b7791f;font-weight:600;">预计总支出</div><div style="font-size:15px;font-weight:700;color:#e53e3e;">¥' + totalExpense.toFixed(2) + '</div></div>';
+  var fuelInput = document.getElementById('tblFuelFee');
+  if (fuelInput && document.activeElement !== fuelInput) fuelInput.value = fuelFee;
+}
+
+function onTblFuelFeeChange(v) {
+  if (!tableEditData) return;
+  tableEditData.fuelFee = parseFloat(v) || 0;
+  renderBudgetSummary();
 }
 
 /* 一键计算所有POI的驾车路线（失败项最后统一重试一次） */
@@ -7730,6 +8243,7 @@ document.addEventListener('keydown', e => {
 
 document.getElementById('editToggle').addEventListener('click', toggleEditMode);
 document.getElementById('changePwdBtn').addEventListener('click', changeAdminPwd);
+
 // 注意：overviewModal 与 tableEditModal 不再点击外部关闭，避免误触丢失编辑内容
 document.getElementById('spentBadge').addEventListener('click', openExpenseList);
 
@@ -7938,6 +8452,18 @@ document.getElementById('tableImportFile').addEventListener('change', function(e
 
 // 按钮事件绑定
 document.getElementById('tableEditBtn').addEventListener('click', openTableEdit);
+/* 表格编辑：一键批量匹配简介（对 tableEditData 内 POI 执行，只填空字段） */
+document.getElementById('tableSmartBtn').addEventListener('click', function() {
+  var btn = this;
+  var oldHtml = btn.innerHTML;
+  btn.disabled = true;
+  btn.innerHTML = '匹配中...';
+  batchSmartMatchAll(tableEditData, function() {
+    btn.disabled = false;
+    btn.innerHTML = oldHtml;
+    try { renderTableEdit(); } catch(e) { console.warn('renderTableEdit failed', e); }
+  });
+});
 document.getElementById('weatherBtn').addEventListener('click', openWeatherModal);
 document.getElementById('syncSettingsBtn').addEventListener('click', openTokenModal);
 // tableEditModal 不再点击外部关闭，避免误触丢失编辑内容
@@ -8010,6 +8536,8 @@ loadData();
     }
   } catch(e) {}
 })();
+// 页面加载后刷新 FC 代理按钮状态（根据 localStorage 显示开/关颜色与图标）
+try { updateFcBtn(); } catch(e) { console.warn('updateFcBtn init failed:', e); }
 </script>
 
 </body>
