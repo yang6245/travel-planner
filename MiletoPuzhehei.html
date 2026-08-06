@@ -2336,19 +2336,29 @@ function callLLM(systemPrompt, userPrompt, onResult) {
     showToast('AI 生成需要启用 FC 代理（同步设置 → FC代理 按钮）');
     onResult(null); return;
   }
-  fetchWithTimeout(fcUrl, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() || GITHUB_CONFIG.getRememberedToken() },
-    body: JSON.stringify({
-      action: 'ai',
-      provider: cfg.provider,
-      apiKey: cfg.apiKey,
-      model: cfg.model,
-      baseUrl: cfg.baseUrl,
-      systemPrompt: systemPrompt,
-      userPrompt: userPrompt
-    })
-  }, 30000).then(function(r) {
+  // 429 限流自动重试：免费模型频繁调用会触发，等待 2.5s 重试（最多 3 次）
+  function attempt(retriesLeft) {
+    return fetchWithTimeout(fcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() || GITHUB_CONFIG.getRememberedToken() },
+      body: JSON.stringify({
+        action: 'ai',
+        provider: cfg.provider,
+        apiKey: cfg.apiKey,
+        model: cfg.model,
+        baseUrl: cfg.baseUrl,
+        systemPrompt: systemPrompt,
+        userPrompt: userPrompt
+      })
+    }, 30000).then(function(r) {
+      if (r.status === 429 && retriesLeft > 0) {
+        console.warn('AI 限流 429，' + retriesLeft + ' 次后重试...');
+        return new Promise(function(res) { setTimeout(function() { res(attempt(retriesLeft - 1)); }, 2500); });
+      }
+      return r;
+    });
+  }
+  attempt(3).then(function(r) {
     if (!r.ok) throw new Error('AI 服务返回 ' + r.status);
     return r.json();
   }).then(function(resp) {
@@ -3950,6 +3960,7 @@ function persistAITips() {
 }
 /* 全量生成总览+各天旅途提示；riskReasons 非空=本次有特别重大变化(写入风险提示) */
 function generateAllAITips(restore, riskReasons) {
+  showToast('⏳ 正在生成 AI 旅途提示（约需 30-60 秒）...');
   var dayList = trip.days.map(function(d) { return d.day; });
   var results = { overview: null, days: {} };
   var idx = 0;
@@ -3978,7 +3989,7 @@ function generateAllAITips(restore, riskReasons) {
       var day = dayList[idx]; idx++;
       callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', promptForDay(day), function(text) {
         if (text) results.days[day] = text;
-        nextDay();
+        setTimeout(nextDay, 400);   /* 串行间隔 400ms，降低免费模型限流概率 */
       });
     } else {
       callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', promptForOverview(), function(text) {
@@ -4009,6 +4020,7 @@ function generateAllAITips(restore, riskReasons) {
     }
     trip.aiTips = { overview: results.overview || '', days: results.days, weatherSnap: snap, risk: risk, updatedAt: Date.now() };
     updateRiskBar();
+    showToast('✅ AI 旅途提示已生成并保存');
     cloudSave(trip).then(function() { restore(); }).catch(function() { restore(); });
   }
   nextDay();
