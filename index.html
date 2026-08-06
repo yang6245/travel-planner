@@ -1766,14 +1766,19 @@
       <div style="font-size:12px;color:#888;margin-top:6px;">Token 以 <code>ghp_</code> 开头，获取方式见下方说明</div>
     </div>
     <div style="background:#eef7ff;border-radius:10px;padding:12px 14px;margin-bottom:14px;font-size:12px;line-height:1.7;color:#2c5282;">
-      <div style="font-weight:700;margin-bottom:4px;color:#2b6cb0;">⚡ 阿里云 FC 代理（可选，国内保存加速）</div>
-      不配置时保存直连 GitHub（偶尔慢）；配置 FC 函数 URL 后，保存将经由国内 FC 转发，速度更快。<br>
-      未部署 FC 函数时请留空。
+      <div style="font-weight:700;margin-bottom:4px;color:#2b6cb0;">⚡ 阿里云 FC 代理（可选，国内保存/上传加速）</div>
+      开启时保存与图片上传经由国内 FC 转发；关闭后全部直连 GitHub（偶尔慢）。<br>
+      可先用 GitHub 直连，确认连不上再勾选开启。
       <input type="text" id="fcProxyInput" placeholder="https://xxxxxxxx.fc.aliyuncs.com/xxx" style="width:100%;padding:8px 10px;border:1px solid #90cdf4;border-radius:6px;font-size:12px;box-sizing:border-box;margin-top:6px;font-family:monospace;">
-      <div style="display:flex;gap:8px;margin-top:8px;">
+      <label style="display:flex;align-items:center;gap:6px;margin-top:8px;cursor:pointer;user-select:none;">
+        <input type="checkbox" id="fcEnabledCheck" style="width:auto;margin:0;" onchange="toggleFcEnabled()"> 启用 FC 代理（勾选后保存/上传走 FC）
+      </label>
+      <div style="display:flex;gap:8px;margin-top:8px;flex-wrap:wrap;">
         <button class="btn-secondary" style="flex:1;padding:6px 10px;font-size:12px;" onclick="saveFcProxy()">保存 FC 地址</button>
         <button class="btn-secondary" style="padding:6px 10px;font-size:12px;color:#e74c3c;" onclick="removeFcProxy()">清除</button>
+        <button class="btn-secondary" style="padding:6px 10px;font-size:12px;color:#2b6cb0;" onclick="window.open('https://fcnext.console.aliyun.com/','_blank')">打开阿里云控制台</button>
       </div>
+      <div style="font-size:11px;color:#718096;margin-top:6px;">提示：本开关只控制当前浏览器是否调用 FC；要彻底停用函数计费，请到阿里云控制台把「最小实例数」设为 0 或删除函数。</div>
     </div>
     <div style="background:#fff3cd;border-radius:8px;padding:10px 12px;margin-bottom:14px;font-size:12px;line-height:1.6;color:#856404;">
       <div style="font-weight:700;margin-bottom:4px;">如何获取 Token？</div>
@@ -1853,7 +1858,15 @@ const GITHUB_CONFIG = {
   // 保存到 localStorage: fc_proxy_url。轮询/读取仍走 CDN，不受影响。
   getFcProxyUrl: function() { try { return localStorage.getItem('fc_proxy_url') || ''; } catch(e) { return ''; } },
   setFcProxyUrl: function(u) { try { localStorage.setItem('fc_proxy_url', u || ''); } catch(e) {} },
-  hasFcProxy: function() { return !!this.getFcProxyUrl(); },
+  getFcEnabled: function() {
+    try {
+      var v = localStorage.getItem('fc_enabled');
+      if (v === null) return !!this.getFcProxyUrl();   // 从未设置过：跟随是否已填地址
+      return v === '1';
+    } catch(e) { return false; }
+  },
+  setFcEnabled: function(on) { try { localStorage.setItem('fc_enabled', on ? '1' : '0'); } catch(e) {} },
+  hasFcProxy: function() { return this.getFcEnabled() && !!this.getFcProxyUrl(); },
   get dataPath() { return deriveDataPath(); },
   // Token 存储在 localStorage，每个设备只需输入一次
   getToken: function() { try { return localStorage.getItem('gh_token') || ''; } catch(e) { return ''; } },
@@ -1987,6 +2000,75 @@ function githubHeaders(extra) {
   return Object.assign(h, extra || {});
 }
 
+/* ===== 行程图片外链化：上传到 images/ 目录，JSON 只存 CDN URL（根治大文件） ===== */
+// 推导图片目录：data/行程目录/trip.json → 行程目录
+function getTripImageDir() {
+  try {
+    var parts = (GITHUB_CONFIG.dataPath || '').split('/');
+    if (parts.length >= 2 && parts[0] === 'data') return parts[1];
+  } catch(e) {}
+  return 'default';
+}
+// 上传单张图片到 images/<目录>/img_<时间戳>_<随机>.<ext>
+// 优先走 FC（action=upload，国内加速）；FC 未配置/失败/未升级 → 回退直连 GitHub API
+function uploadTripImage(dataUrl, onDone, onError) {
+  if (!GITHUB_CONFIG.hasToken()) { onError('未配置 Token，无法上传图片'); return; }
+  var m = dataUrl.match(/^data:(image\/\w+);base64,([^]*)$/);
+  if (!m) { onError('图片格式无效'); return; }
+  var mime = m[1], content = m[2];
+  var ext = (mime === 'image/png') ? 'png' : ((mime === 'image/webp') ? 'webp' : 'jpg');
+  var path = 'images/' + getTripImageDir() + '/' + 'img_' + Date.now() + '_' + Math.random().toString(36).slice(2, 8) + '.' + ext;
+  var url = GITHUB_CONFIG.cdnBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo + '@' + GITHUB_CONFIG.branch + '/' + path;
+  function putDirect() {
+    return fetchWithTimeout(
+      GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo + '/contents/' + encodeURIComponent(path),
+      { method: 'PUT', headers: githubHeaders(), body: JSON.stringify({
+          message: '上传行程图片 ' + path,
+          content: content,
+          branch: GITHUB_CONFIG.branch
+        }) }, 20000)
+      .then(function(r) { if (!r.ok) throw new Error('GitHub 上传失败 ' + r.status); return r.json(); });
+  }
+  var task;
+  var fcUrl = GITHUB_CONFIG.hasFcProxy() ? GITHUB_CONFIG.getFcProxyUrl() : '';
+  if (fcUrl) {
+    task = fetchWithTimeout(fcUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() },
+      body: JSON.stringify({
+        action: 'upload', owner: GITHUB_CONFIG.owner, repo: GITHUB_CONFIG.repo,
+        branch: GITHUB_CONFIG.branch, path: path, content: content, message: '上传行程图片 ' + path
+      })
+    }, 25000)
+    .then(function(r) { if (!r.ok) throw new Error('FC 返回 ' + r.status); return r.json(); })
+    .then(function(resp) { if (resp && resp.error) throw new Error(resp.error); return resp; })
+    .catch(function() { return putDirect(); });   // FC 失败一律回退直连
+  } else {
+    task = putDirect();
+  }
+  task.then(function() { onDone(url); })
+      .catch(function(err) { onError(String((err && err.message) || err)); });
+}
+// 保存前兜底：把残留的 data:image 内嵌图逐个上传为外链（一次性根治旧缓存/导入数据）
+function ensureTripImagesExternal(tripData) {
+  var jobs = [];
+  (tripData.days || []).forEach(function(d) {
+    (d.pois || []).forEach(function(p) {
+      if (p.img && p.img.indexOf('data:image') === 0) {
+        jobs.push(new Promise(function(resolve) {
+          uploadTripImage(p.img, function(url) { p.img = url; resolve(); }, function() { resolve(); });
+        }));
+      }
+    });
+    if (d.cover && d.cover.indexOf('data:image') === 0) {
+      jobs.push(new Promise(function(resolve) {
+        uploadTripImage(d.cover, function(url) { d.cover = url; resolve(); }, function() { resolve(); });
+      }));
+    }
+  });
+  return Promise.all(jobs);
+}
+
 /* ===== Token 管理界面 ===== */
 function openTokenModal() {
   var modal = document.getElementById('tokenModal');
@@ -1994,6 +2076,8 @@ function openTokenModal() {
   input.value = GITHUB_CONFIG.getToken() || '';
   var fcInput = document.getElementById('fcProxyInput');
   if (fcInput) fcInput.value = GITHUB_CONFIG.getFcProxyUrl() || '';
+  var fcEnabled = document.getElementById('fcEnabledCheck');
+  if (fcEnabled) fcEnabled.checked = GITHUB_CONFIG.getFcEnabled();
   document.getElementById('tokenTestResult').style.display = 'none';
   modal.style.display = 'flex';
 }
@@ -2005,12 +2089,24 @@ function saveFcProxy() {
   var url = document.getElementById('fcProxyInput').value.trim();
   if (url && !/^https:\/\//.test(url)) { showToast('FC 地址需以 https:// 开头'); return; }
   GITHUB_CONFIG.setFcProxyUrl(url);
+  var cb = document.getElementById('fcEnabledCheck');
+  if (cb && url) GITHUB_CONFIG.setFcEnabled(cb.checked);   // 有地址时同步开关状态
   showToast(url ? '✅ FC 代理地址已保存' : 'FC 代理地址已清除');
 }
 function removeFcProxy() {
   GITHUB_CONFIG.setFcProxyUrl('');
+  GITHUB_CONFIG.setFcEnabled(false);
+  var cb = document.getElementById('fcEnabledCheck');
+  if (cb) cb.checked = false;
   document.getElementById('fcProxyInput').value = '';
-  showToast('FC 代理地址已清除');
+  showToast('FC 代理已清除，保存/上传将直连 GitHub');
+}
+/* 启用/关闭 FC 代理开关（勾选立即生效，无需保存） */
+function toggleFcEnabled() {
+  var cb = document.getElementById('fcEnabledCheck');
+  if (!cb) return;
+  GITHUB_CONFIG.setFcEnabled(cb.checked);
+  showToast(cb.checked ? '✅ 已启用 FC 代理（保存/上传走国内加速）' : '已关闭 FC 代理，改用 GitHub 直连');
 }
 function saveToken() {
   var token = document.getElementById('tokenInput').value.trim();
@@ -2100,7 +2196,7 @@ function cloudLoadReadOnly() {
 // 从 GitHub 仓库加载行程数据（需 Token，可获取 SHA 用于后续更新）
 // 配置 FC 代理时：浏览器→FC→GitHub API 读取（FC 在阿里云，国内直连稳定，解决直连 GitHub API 慢/失败）
 function cloudLoad() {
-  var fcUrl = GITHUB_CONFIG.getFcProxyUrl();
+  var fcUrl = GITHUB_CONFIG.hasFcProxy() ? GITHUB_CONFIG.getFcProxyUrl() : '';
   if (fcUrl) {
     return loadViaFcProxy(fcUrl);
   }
@@ -2168,9 +2264,11 @@ function cloudSave(tripData) {
     updateSyncStatus('offline');
     return Promise.reject(new Error('未配置 GitHub Token'));
   }
+  // 保存前先把残留 base64 图上传为外链（images/ 目录 + CDN URL），根治大文件
+  return ensureTripImagesExternal(tripData).then(function() {
   // 阿里云 FC 代理模式：配置了 fc_proxy_url 时，把保存请求转发给 FC 函数（由 FC 转发 GitHub API）
   // 好处：浏览器→FC 国内直连，避免 GitHub API 直连慢；Token 通过 header 传给 FC，不暴露在 URL
-  var fcUrl = GITHUB_CONFIG.getFcProxyUrl();
+  var fcUrl = GITHUB_CONFIG.hasFcProxy() ? GITHUB_CONFIG.getFcProxyUrl() : '';
   if (fcUrl) {
     return saveViaFcProxy(fcUrl, tripData);
   }
@@ -2216,6 +2314,7 @@ function cloudSave(tripData) {
       cloudLastUpdate = data._updatedAt;
       updateSyncStatus('synced');
     });
+  });
   });
 }
 
@@ -6096,10 +6195,16 @@ document.getElementById('editForm').addEventListener('submit', async function(e)
   const imgUrl = document.getElementById('editImgUrl').value.trim();
   const imgFile = document.getElementById('editImgFile').files[0];
   if (imgFile) {
-    // 自动压缩后保存，控制云端文件体积
+    // 自动压缩后上传为外链（images/ 目录），JSON 只存 CDN URL，控制云端体积
     compressImageFile(imgFile, function(b64) {
-      poi.img = b64;
-      finishSavePoi();
+      uploadTripImage(b64, function(url) {
+        poi.img = url;
+        finishSavePoi();
+      }, function(err) {
+        poi.img = b64;   // 上传失败降级内嵌图（下次保存会自动重试外链化）
+        finishSavePoi();
+        showToast('图片上传失败，已降级为本地图：' + err);
+      });
     }, function(err) {
       showToast('图片处理失败：' + err);
     });
@@ -6543,7 +6648,13 @@ function onDayEditCoverSelected(input) {
   var file = input.files && input.files[0];
   if (!file) return;
   compressImageFile(file, function(b64) {
-    updateDayEditCoverPreview(b64);
+    // 压缩后立即上传为外链（预览用 URL；失败降级 base64 预览，保存时再重试外链化）
+    uploadTripImage(b64, function(url) {
+      updateDayEditCoverPreview(url);
+    }, function(err) {
+      updateDayEditCoverPreview(b64);
+      showToast('封面上传失败，已降级为本地图：' + err);
+    });
   }, function(err) {
     showToast('图片处理失败：' + err);
   });
