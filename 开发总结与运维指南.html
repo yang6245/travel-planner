@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>旅游行程规划小程序 · 开发总结与运维指南</title>
+<style>
+  :root{
+    --primary:#2f6fed; --primary-light:#e8f0fe; --primary-soft:#f5f8ff;
+    --danger:#d93026; --danger-light:#fdecea;
+    --warn:#b45309; --warn-light:#fff7e6;
+    --ok:#0e9f6e; --ok-light:#e6f7f0;
+    --text:#1f2937; --text-2:#4b5563; --text-3:#9ca3af;
+    --border:#e5e7eb; --card:#ffffff; --bg:#f7f8fa;
+    --code-bg:#f3f4f6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei","PingFang SC",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.7;font-size:15px}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 20px 80px}
+  header.hero{background:linear-gradient(135deg,#2f6fed 0%,#4f8ef7 55%,#6fa8fa 100%);border-radius:16px;color:#fff;padding:36px 40px;margin-bottom:28px;box-shadow:0 8px 24px rgba(47,111,237,.25)}
+  header.hero h1{font-size:26px;margin-bottom:8px;letter-spacing:1px}
+  header.hero p{opacity:.92;font-size:14px}
+  header.hero .meta{margin-top:14px;display:flex;gap:10px;flex-wrap:wrap}
+  header.hero .meta span{background:rgba(255,255,255,.18);padding:3px 12px;border-radius:999px;font-size:12px}
+  nav.toc{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px 20px;margin-bottom:28px;display:flex;flex-wrap:wrap;gap:8px}
+  nav.toc a{text-decoration:none;color:var(--primary);font-size:13px;padding:5px 14px;border-radius:999px;border:1px solid var(--primary-light);background:var(--primary-soft);transition:.15s}
+  nav.toc a:hover{background:var(--primary);color:#fff}
+  section.panel{background:var(--card);border:1px solid var(--border);border-radius:14px;padding:28px 32px;margin-bottom:28px;box-shadow:0 2px 8px rgba(0,0,0,.03)}
+  section.panel h2{font-size:20px;color:var(--primary);margin-bottom:6px;display:flex;align-items:center;gap:10px}
+  section.panel h2 .num{background:var(--primary);color:#fff;width:30px;height:30px;border-radius:8px;display:inline-flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0}
+  section.panel > p.sub{color:var(--text-2);font-size:13px;margin-bottom:18px;padding-bottom:14px;border-bottom:1px dashed var(--border)}
+  h3{font-size:16px;margin:26px 0 10px;color:var(--text);padding-left:10px;border-left:4px solid var(--primary)}
+  h4{font-size:14px;margin:16px 0 8px;color:var(--text-2)}
+  p{margin-bottom:10px}
+  ul,ol{margin:6px 0 12px 22px}
+  li{margin-bottom:5px}
+  table{width:100%;border-collapse:collapse;margin:12px 0 16px;font-size:13.5px}
+  th{background:var(--primary-soft);color:var(--primary);text-align:left;padding:9px 12px;border:1px solid var(--border);font-weight:600;white-space:nowrap}
+  td{padding:8px 12px;border:1px solid var(--border);vertical-align:top}
+  tr:nth-child(even) td{background:#fafbfc}
+  code{background:var(--code-bg);border:1px solid var(--border);border-radius:4px;padding:1px 6px;font-size:12.5px;font-family:Consolas,Menlo,monospace;color:#c7254e}
+  pre{background:#f8f9fb;border:1px solid var(--border);border-radius:8px;padding:14px 16px;overflow-x:auto;margin:10px 0 14px;font-size:12.5px;line-height:1.6;font-family:Consolas,Menlo,monospace}
+  pre code{background:none;border:none;padding:0;color:#374151}
+  .alert{border-radius:10px;padding:12px 16px;margin:12px 0;font-size:13.5px;display:flex;gap:10px;align-items:flex-start}
+  .alert .ico{font-size:16px;line-height:1.4}
+  .alert.red{background:var(--danger-light);border:1px solid #f5c6c0}
+  .alert.red b{color:var(--danger)}
+  .alert.yellow{background:var(--warn-light);border:1px solid #f3d9a4}
+  .alert.yellow b{color:var(--warn)}
+  .alert.green{background:var(--ok-light);border:1px solid #b8e6d2}
+  .alert.green b{color:var(--ok)}
+  .alert.blue{background:var(--primary-light);border:1px solid #c7d9fb}
+  .alert.blue b{color:var(--primary)}
+  .tag{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;margin-right:5px;vertical-align:1px}
+  .tag.red{background:var(--danger-light);color:var(--danger)}
+  .tag.green{background:var(--ok-light);color:var(--ok)}
+  .tag.yellow{background:var(--warn-light);color:var(--warn)}
+  .tag.blue{background:var(--primary-light);color:var(--primary)}
+  .tag.gray{background:#f0f1f3;color:var(--text-3)}
+  .badge-good{color:var(--ok);font-weight:600}
+  .badge-bad{color:var(--danger);font-weight:600}
+  .badge-warn{color:var(--warn);font-weight:600}
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:12px 0}
+  .flow .step{background:var(--primary-soft);border:1px solid var(--primary-light);color:var(--primary);border-radius:8px;padding:6px 12px;font-size:13px}
+  .flow .arrow{color:var(--text-3);font-size:14px}
+  .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+  .kpi .box{background:var(--primary-soft);border:1px solid var(--primary-light);border-radius:10px;padding:14px 16px}
+  .kpi .box .v{font-size:22px;font-weight:700;color:var(--primary)}
+  .kpi .box .k{font-size:12px;color:var(--text-2);margin-top:2px}
+  .timeline{border-left:2px solid var(--primary-light);margin:14px 0 8px 6px;padding-left:18px}
+  .timeline .item{position:relative;margin-bottom:14px}
+  .timeline .item::before{content:"";position:absolute;left:-24px;top:6px;width:10px;height:10px;border-radius:50%;background:var(--primary)}
+  .timeline .item .t{font-size:13px;color:var(--text-2);margin-bottom:2px}
+  .timeline .item .d{font-size:13.5px}
+  .check{color:var(--ok);font-weight:700}
+  .cross{color:var(--danger);font-weight:700}
+  .warn-ico{color:var(--warn);font-weight:700}
+  footer{text-align:center;color:var(--text-3);font-size:12px;margin-top:10px}
+  @media(max-width:720px){
+    section.panel{padding:20px 16px}
+    header.hero{padding:26px 22px}
+    th,td{padding:6px 8px;font-size:12px}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="hero">
+  <h1>🗺️ 旅游行程规划小程序 · 开发总结与运维指南</h1>
+  <p>基于 2026-08-05 ~ 08-06 全部开发过程整理 · 覆盖：日常运维操作 / AI 大模型接入 / 与 AI 协作方法论 / 文件清理清单</p>
+  <div class="meta">
+    <span>纯前端 · GitHub 存储</span><span>双行程：格聂南线 / 弥勒-普者黑</span><span>FC 代理已部署 v7</span><span>生成日期 2026-08-06</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <a href="#s0">⭐ 小白三分钟看懂</a>
+  <a href="#s1">① 日常运维操作手册</a>
+  <a href="#s2">② AI 大模型配置指南</a>
+  <a href="#s3">③ 与 AI 对话操作指南</a>
+  <a href="#s4">④ 文件清理清单</a>
+</nav>
+
+<!-- ============ 小白速通 ============ -->
+<section class="panel" id="s0" style="background:linear-gradient(180deg,#fffdf5 0%,#fff 60%)">
+  <h2><span class="num">⭐</span>小白三分钟看懂：先记这几个比喻</h2>
+  <p class="sub">后面所有专业词，都能套进这几个比喻里理解。先看这个表，再往下读就不晕了。</p>
+  <table>
+    <tr><th>专业词</th><th>大白话</th><th>记住就行</th></tr>
+    <tr><td>GitHub 仓库</td><td>你的<b>云端网盘</b>，所有行程数据都存在这里</td><td>数据的老家</td></tr>
+    <tr><td>Token（钥匙）</td><td>证明你是管理员的<b>门禁卡</b></td><td>有卡 = 能改数据；没卡 = 只能看</td></tr>
+    <tr><td>FC 代理</td><td>一个<b>国内中转站（代购）</b>：你的请求先到中转站，中转站替你出国取/存数据</td><td>中转站收一点辛苦费（CU）</td></tr>
+    <tr><td>CDN</td><td><b>国内仓库分店</b>：游客直接在这里拿数据看，不用出国</td><td>游客走这条路，不花钱</td></tr>
+    <tr><td>CU</td><td>阿里云中转站的<b>电表读数</b>，按次数计费</td><td>每月前 100 万次免费，正常用≈0 元</td></tr>
+    <tr><td>localStorage</td><td>浏览器自带的<b>记忆本</b>：Token、FC 地址都记在这</td><td>每个网址各有一本，互不相通</td></tr>
+    <tr><td>GitHub Pages</td><td>你的<b>网站门面</b>：把 HTML 传上去，别人就能用网址打开</td><td>云端网址</td></tr>
+    <tr><td>jsDelivr / raw</td><td>读数据时的<b>备用通道</b>：CDN 抽风时换一条路试试</td><td>只读，不用管</td></tr>
+  </table>
+
+  <div class="alert blue"><span class="ico">🧭</span><div><b>一句话理解整件事：</b>数据存在云端网盘（GitHub），你打开网页（浏览器）去读写。管理员（有 Token）直连网盘又慢又卡，所以请了个国内中转站（FC）帮忙跑腿，中转站只在你用的时候收一点点辛苦费（CU）。游客没有门禁卡，就只能在旁边国内仓库分店（CDN）看看，不用跑腿费。</div></div>
+</section>
+
+<!-- ==================== 板块一 ==================== -->
+<section class="panel" id="s1">
+  <h2><span class="num">1</span>日常运维操作手册</h2>
+  <p class="sub">创建新旅程、Token、FC 代理、CU 计费、发布推送 —— 今后所有操作的步骤与逻辑，以及哪些动作会花钱（CU）。</p>
+
+  <h3>1.1 创建新旅程（新行程页面）</h3>
+  <div class="flow">
+    <span class="step">运行「创建新旅程.ps1」</span><span class="arrow">→</span>
+    <span class="step">复制 index.html 为模板，起中文名（如 川西环线5日游.html）</span><span class="arrow">→</span>
+    <span class="step">自动推导 dataPath = data/文件名/trip.json</span><span class="arrow">→</span>
+    <span class="step">首次加载：有 Token 时自动检测旧目录并一键迁移</span>
+  </div>
+  <ul>
+    <li><b>命名规则（方案A）：</b>中文名直接用，无需转英文。新页面 dataPath 由文件名自动推导，无需改任何代码。</li>
+    <li><b>默认首页特判：</b><code>index.html</code> / <code>default</code> / 空 → <code>data/格聂南线/trip.json</code>。</li>
+    <li><b>数据隔离：</b>每个行程独立 <code>data/行程名/trip.json</code>，互不干扰。</li>
+    <li><b>迁移逻辑：</b>重命名页面后首次打开，新路径不存在 → 自动扫描云端 data/ 目录 → 弹窗确认 → 一键复制旧数据到新路径并刷新（仅限有 Token 的编辑者，游客只读不弹窗）。</li>
+    <li><b>新旅程即最优版本：</b>创建脚本以 <code>index.html</code> 为模板，所以 index.html 的每次优化会自动成为新旅程的初始状态。</li>
+  </ul>
+  <div class="alert yellow"><span class="ico">⚠️</span><div><b>本地 file:// 打开时：</b>每个 HTML 文件的 localStorage 相互独立——index 里填的 FC 地址 / Token，MiletoPuzhehei 里看不到，需各填一次；线上 GitHub Pages 同源共享，配一次即可。</div></div>
+
+  <h3>1.2 Token 管理</h3>
+  <table>
+    <tr><th>项目</th><th>说明</th></tr>
+    <tr><td>存储位置</td><td><code>localStorage.gh_token</code>（仅存浏览器本地，不落盘、不上传）</td></tr>
+    <tr><td>作用</td><td>有 Token → 走 GitHub API 读写（国内可达）；无 Token → jsDelivr CDN 只读，失败降级本地缓存</td></tr>
+    <tr><td>获取方式</td><td>GitHub → Settings → Developer settings → Personal access tokens → 勾选 <code>repo</code> 权限</td></tr>
+    <tr><td>在哪里填</td><td>页面 → 同步设置 → Token 管理</td></tr>
+    <tr><td>丢失场景</td><td>清浏览器缓存/换浏览器/换电脑 → Token 丢失需重新填写</td></tr>
+    <tr><td>安全红线</td><td>Token 是敏感信息：不写入任何上传文件、不在对话/文档中明文展示；本机「配置信息.txt」已存明文，务必妥善保管</td></tr>
+  </table>
+  <div class="alert blue"><span class="ico">💡</span><div><b>加载链路（理解“卡连接中”）：</b>有 Token → GitHub API（5s 超时）→ 失败走 CDN(4s) → raw(4s) → 降级本地缓存。无 Token → CDN → raw → 降级。改完云端后若页面还是旧内容，先 <b>Ctrl+F5 强刷</b>，别急着报 bug。</div></div>
+  <div class="alert yellow"><span class="ico">⚠️</span><div><b>重要澄清：「配置信息.txt」≠ 程序配置。</b>那个 txt 是你手动记的备忘（含 Token 明文，注意别外传），<b>程序运行时不读它</b>。程序真正读的是浏览器记忆本（localStorage）。所以你在 txt 里改什么都没用——要在页面的「同步设置」弹窗里填才算数。</div></div>
+
+  <h3>1.3 FC 代理管理（阿里云函数计算）</h3>
+  <table>
+    <tr><th>项目</th><th>当前值 / 操作</th></tr>
+    <tr><td>函数地址</td><td><code>https://github-proxy-swyrmygeqi.cn-hangzhou.fcapp.run</code></td></tr>
+    <tr><td>填在哪里</td><td>同步设置 → FC 代理地址（oninput 自动保存）；顶部工具栏「FC代理」按钮一键开关</td></tr>
+    <tr><td>代码位置</td><td>本机 <code>fc_proxy/fc_proxy.py</code>（当前 v7，含 ai 转发）</td></tr>
+    <tr><td>部署方式</td><td>阿里云控制台 → github-proxy 函数 → OpenCode Server → 覆盖 <code>index.py</code> 全部代码 → 部署代码</td></tr>
+    <tr><td>关键配置</td><td>handler 保持 <code>index.handler</code>；触发器认证「无需认证」；<b>最小实例数 = 0</b></td></tr>
+  </table>
+  <div class="alert red"><span class="ico">🚨</span><div><b>两个最容易踩的坑：</b><br>
+  ① <b>域名拼写</b>：正确是 <code>swyrmygeqi</code>（9 个字符）！曾把 8 字符的 <code>swr4mygeqi</code> 当成地址，连续报 DomainNameNotFound，实际从头到尾函数都正常——<b>地址一律从阿里云控制台「触发器」页面复制，不要凭记忆输入</b>。<br>
+  ② <b>重新部署后域名可能变化</b>：v6→v7 重部署后旧域名曾失效，若保存报网络错误，先回控制台重新复制新域名。</div></div>
+  <div class="alert green"><span class="ico">✅</span><div><b>不旅行时省钱：</b>控制台停用函数 = 0 支出；下次使用前重新启用即可（冷启动 1~2s，可接受）。</div></div>
+
+  <h3>1.4 CU 计费逻辑：哪些动作花钱</h3>
+  <p>CU = 阿里云函数计算的计费单位，通俗说就是<b>「中转站跑腿的账单」</b>。当前架构下 FC 只承担「写入/读取/上传/AI 转发」，轮询和游客读取都走 CDN，所以调用量本来就很低。</p>
+  <table>
+    <tr><th>动作</th><th>是否消耗 FC(CU)</th><th>说明</th></tr>
+    <tr><td>编辑保存（cloudSave）</td><td class="badge-bad">消耗</td><td>POST 1 次；首次跨域还有 1 次 OPTIONS 预检（已被 24h 缓存头砍掉，一天内仅首次）</td></tr>
+    <tr><td>上传图片（uploadTripImage）</td><td class="badge-bad">消耗</td><td>走 FC action=upload；未部署 v6+ 时回退直连 GitHub API</td></tr>
+    <tr><td>读取云端（loadViaFcProxy）</td><td class="badge-bad">消耗</td><td>配置了 FC 地址的编辑者加载时 POST action=read</td></tr>
+    <tr><td>AI 大模型调用（callLLM）</td><td class="badge-bad">消耗（若启用）</td><td>走 FC action=ai 转发；未配置 AI 则完全不产生</td></tr>
+    <tr><td>60s 自动轮询（cloudPollCheck）</td><td class="badge-good">不消耗</td><td>走 GitHub API / CDN / raw，不经过 FC —— 挂机看行程不会产生 FC 费用</td></tr>
+    <tr><td>游客访问 / 无 Token 加载</td><td class="badge-good">不消耗</td><td>jsDelivr CDN 读取，与 FC 无关</td></tr>
+    <tr><td><b>有 Token + FC 开关关闭</b></td><td class="badge-good">不消耗</td><td>直接连 GitHub API（绕过中转站）——功能正常，但国内直连<b>慢、可能不稳定</b>；完全不产生 CU</td></tr>
+    <tr><td>高德地图 / 天气接口</td><td class="badge-good">不消耗</td><td>直接调用高德/Open-Meteo，走各自免费额度</td></tr>
+  </table>
+
+  <h4>管理员三种状态一图看懂（重点！）</h4>
+  <table>
+    <tr><th>你的状态</th><th>数据怎么走</th><th>花不花 FC 的钱</th><th>快不快</th><th>能改数据吗</th></tr>
+    <tr>
+      <td>游客（没填 Token）</td>
+      <td>只从国内仓库分店（CDN）<b>看</b></td>
+      <td class="badge-good">不花</td>
+      <td>快</td>
+      <td class="cross">✗ 只能看</td>
+    </tr>
+    <tr>
+      <td>管理员 + FC 开</td>
+      <td>出国取送都<b>走中转站</b>（FC）</td>
+      <td class="badge-bad">花一点（有小时地板费）</td>
+      <td>快 ✅</td>
+      <td class="check">✓ 能改</td>
+    </tr>
+    <tr>
+      <td>管理员 + FC 关</td>
+      <td>自己<b>直接出国</b>连 GitHub</td>
+      <td class="badge-good">不花（没经过中转站）</td>
+      <td>慢 ⚠️ 可能卡</td>
+      <td class="check">✓ 能改</td>
+    </tr>
+  </table>
+  <div class="alert yellow"><span class="ico">💡</span><div><b>结论：</b>关 FC = 省钱但不快；开 FC = 花钱一点点但体验好。每月 100 万次免费，正常一年 3 次旅行基本 ≈ 0 元，所以<b>平时就开着 FC 用，别关</b>。</div></div>
+
+  <h4>计费规则（2026-08-06 已实测确认）</h4>
+  <ul>
+    <li>每月前 <b>100 万次调用免费</b>（三年试用后按量，年成本约 0.3~0.5 元）——按您每年 3 次旅行的用量绰绰有余。</li>
+    <li class="warn-ico">⚠️ <b>小时地板价陷阱</b>：单小时内只要有调用（哪怕 1 次），若折算金额 &lt; 0.01 元，按 0.01 元/小时计费。8 小时收 0.07 元 = 8 × 0.01 元，就是这么来的。</li>
+    <li class="warn-ico">⚠️ <b>最小实例数 ≥ 1 会常驻计费</b>：约 0.01 × 24 × 30 ≈ <b>7 元/月</b>（即使没人用）。务必保持 0。</li>
+  </ul>
+  <div class="kpi">
+    <div class="box"><div class="v">0.01 元/h</div><div class="k">小时地板价（有调用就触发）</div></div>
+    <div class="box"><div class="v">~7 元/月</div><div class="k">最小实例数=1 常驻的代价（勿开）</div></div>
+    <div class="box"><div class="v">0 元</div><div class="k">停用函数后（无调用不计费）</div></div>
+  </div>
+
+  <h3>1.5 修改代码后的完整发布流程</h3>
+  <div class="flow">
+    <span class="step">本地改 index.html / MiletoPuzhehei.html / fc_proxy.py</span><span class="arrow">→</span>
+    <span class="step">改 FC 代码需去阿里云控制台重新部署</span><span class="arrow">→</span>
+    <span class="step">推 HTML 到 GitHub 仓库（git push）</span><span class="arrow">→</span>
+    <span class="step">GitHub Pages 自动更新</span><span class="arrow">→</span>
+    <span class="step">浏览器 Ctrl+F5 强刷验证</span>
+  </div>
+  <div class="alert yellow"><span class="ico">⚠️</span><div><b>最容易“看似没生效”的场景：</b>只改了本地没推送（线上是旧版）；或推送了但浏览器缓存（需强刷）。排查顺序：本地文件 → 云端文件（GitHub 网页看大小）→ 强刷。</div></div>
+
+  <h3>1.6 常见疑问 FAQ（你问过的问题，一次讲透）</h3>
+  <h4>Q1：本地配好了 Token / FC 地址，把文件传到 GitHub 后，要不要重新配置？</h4>
+  <div class="alert blue"><span class="ico">💡</span><div><b>要！全部重新配一遍。</b>这是本项目最容易误会的一点：<br>
+  <b>Token、FC 地址、FC 开关、AI 配置，都不存在文件里，而是存在「你当前打开的浏览器」的记忆本（localStorage）里。</b><br>
+  你把 HTML 文件传到 GitHub，上传的只是「程序本体」，记忆本不会跟着文件走。<b>换个网址打开 = 换了一本全新的空白记忆本</b>，得重新填。</div></div>
+  <p>打比方：HTML 文件是「软件」，Token/FC 地址是「登录密码」。你换了个网址打开，就像换了台新手机——软件装上了，但微信得重新登录。</p>
+  <table>
+    <tr><th>打开方式</th><th>记忆本有几本？</th><th>要怎么配？</th></tr>
+    <tr><td>本地双击打开（file://）</td><td>每 1 个 HTML 文件 1 本（index 配的 Mileto 看不到）</td><td>每个页面各填一次</td></tr>
+    <tr><td>云端网址打开（GitHub Pages）</td><td>整个网址共用 1 本</td><td>填一次，全站所有行程共享 ✅</td></tr>
+  </table>
+  <div class="alert yellow"><span class="ico">⚠️</span><div><b>实际建议：</b>以云端网址为「主战场」——在网址端配好 Token + FC 地址，一次配好全站生效；本地文件主要用于改代码/测试，本地偶尔用就再填一次（或只在云端编辑数据）。</div></div>
+
+  <h4>Q2：本地把 FC 代理开关关掉了，网址端要不要也关？</h4>
+  <div class="alert green"><span class="ico">✅</span><div><b>不用！</b>本地那本记忆本改了，云端那本毫无影响，两份记忆互不相干。<br>
+  想让云端网址也走直连，才需要到网址端单独关一次。同理：本地开了，云端不会自动开。</div></div>
+
+  <h4>Q3：关掉 FC 开关后，数据还能保存吗？</h4>
+  <div class="alert green"><span class="ico">✅</span><div><b>能。</b>关 FC = 不走中转站 = 浏览器直接连 GitHub 存数据。功能完全正常，只是国内直连慢、可能卡，尤其是保存含图片的大文件时。不花 FC 的钱，代价是体验。</div></div>
+
+  <h4>Q4：我又不编辑，为什么"管理员 + FC 关"不能等于游客？（身份由 Token 决定，不是由编辑模式决定）</h4>
+  <table>
+    <tr><th>状态</th><th>加载/检查走哪条路</th><th>看到的数据</th><th>能保存吗</th></tr>
+    <tr><td>游客（没 Token）</td><td>国内仓库分店（CDN）</td><td><b>缓存版</b>，可能不是最新（CDN 刷新要几分钟~几小时）</td><td class="cross">✗</td></tr>
+    <tr><td>管理员 + FC 开</td><td>中转站 → GitHub 实时通道</td><td class="badge-good">最新</td><td class="check">✓</td></tr>
+    <tr><td>管理员 + FC 关</td><td>直连 GitHub 实时通道</td><td class="badge-good">最新</td><td class="check">✓</td></tr>
+  </table>
+  <div class="alert blue"><span class="ico">💡</span><div><b>为什么管理员不能走 CDN 当游客？</b>因为 CDN 是缓存（旧数据），管理员必须看到<b>最新</b>数据（刚编辑完要立刻看到、还要检测别人是否改了），所以只要记忆本里有 Token，加载和 60s 自动检查就走"实时通道"（GitHub API），FC 开关只影响这条通道<b>快不快</b>，不影响走哪条通道。<br>
+  <b>想当纯游客</b>：用无痕窗口 / 手机浏览器打开（那里没你的 Token），或临时清除 Token；平时日常浏览用游客通道完全免费且快。</div></div>
+
+  <h4>Q5：网址端 FC 开关一直开着，会不会一直产生 CU？</h4>
+  <div class="alert green"><span class="ico">✅</span><div><b>不会！开开关 ≠ 在计费。</b>CU 是"按次收跑腿费"，不是"按月收房租"——开着但没人找它跑腿 = 一分钱不花。<br>
+  花钱的只有：打开页面加载（1 次）、每点一次保存（1 次）、传一张图（1 次）。<b>60 秒自动检查（轮询）被特意设计成不走 FC</b>，挂机一整天 CU 一分不涨。</div></div>
+  <div class="alert yellow"><span class="ico">⚠️</span><div><b>唯一会"一直产生"的是阿里云控制台的「最小实例数 = 1」</b>（函数常驻，没人用也每小时计费 ≈ 7 元/月），去控制台确认是 0。<br>
+  <b>终极省钱法</b>：不旅行时去控制台「停用函数」= 绝对 0 元；下次旅行前启用（1 分钟），页面配置不用动。</div></div>
+
+  <h3>1.7 🆕 编辑模式自动切换管理员/游客（2026-08-06 新增）</h3>
+  <p>从此不用再手动管理 Token——<b>平时打开页面就是游客（走 CDN 快、零成本），点「编辑」输密码后自动变管理员，点「完成编辑」自动回到游客</b>。核心是 Token 的「双区存储」：</p>
+  <table>
+    <tr><th>存储区</th><th>通俗叫法</th><th>存什么</th><th>什么时候消失</th></tr>
+    <tr><td>临时记忆（sessionStorage）</td><td>活跃 Token</td><td>当前编辑会话的 Token</td><td>退出编辑 / 关标签页 / 关浏览器 → 自动清</td></tr>
+    <tr><td>长期记忆（localStorage）</td><td>记住版 Token</td><td>勾选「记住本设备」时保存</td><td>只在「同步设置」点删除才消失</td></tr>
+  </table>
+  <div class="flow">
+    <span class="step">日常打开 = 游客（CDN 快、零成本）</span><span class="arrow">→</span>
+    <span class="step">点「编辑」输密码</span><span class="arrow">→</span>
+    <span class="step">自动激活 Token（记住版自动搬，无记住版则弹窗输入一次）</span><span class="arrow">→</span>
+    <span class="step">编辑完点「完成编辑」</span><span class="arrow">→</span>
+    <span class="step">自动删 Token + 停轮询 = 回游客</span>
+  </div>
+  <ul>
+    <li><b>第一次怎么配</b>：点「编辑」→ 输管理员密码 → 弹窗粘贴 Token → 选「记住本设备」→ 以后每次进编辑全自动，无需再输。</li>
+    <li><b>不想记住</b>：弹窗选「取消」（不记住）→ Token 仅本次编辑有效，退出或关标签页自动清除，最严格最安全。</li>
+    <li><b>中途刷新 F5</b>：临时记忆还在 → 编辑不打断，不用重输。</li>
+    <li><b>老用户无缝兼容</b>：以前存过的 Token 自动变成"记住版"，首次进编辑自动搬，无感。</li>
+    <li><b>兼容旧逻辑</b>：同步设置里「保存 Token」= 记住本设备；「测试 Token」不污染记忆；「删除 Token」两者全清。</li>
+  </ul>
+  <div class="alert green"><span class="ico">✅</span><div><b>已通过 15 项行为模拟测试 + 双文件语法/一致性校验</b>（游客判定 / 记住版自动搬 / 退出清除 / 临时模式 / 测试恢复 / 全删）。改动仅本地两个 HTML，<b>需推送云端 GitHub Pages 才在线生效</b>。</div></div>
+</section>
+
+<!-- ==================== 板块二 ==================== -->
+<section class="panel" id="s2">
+  <h2><span class="num">2</span>AI 大模型配置指南</h2>
+  <p class="sub">程序已内置 AI 接口（架构就绪、尚未启用），本文给出接入流程，并重点分析 GLM-4-Flash 与 Hunyuan-Lite 两款免费模型。</p>
+
+  <h3>2.1 程序现有的 AI 能力（已预留）</h3>
+  <table>
+    <tr><th>能力</th><th>触发方式</th><th>无 AI 时回退</th></tr>
+    <tr><td>POI 智能匹配简介（desc/detail）</td><td>编辑弹窗「自动填入」/ 表格「一键匹配简介」</td><td>高德 POI + 内置模板</td></tr>
+    <tr><td>旅途提示（达人叙述）</td><td>打开旅途提示弹窗时自动生成</td><td>内置 6 大板块</td></tr>
+    <tr><td>DAY 标题/描述自动生成</td><td>DAY 编辑弹窗「✨自动生成」</td><td>首尾 POI 拼装模板</td></tr>
+  </table>
+  <ul>
+    <li>配置项（localStorage）：<code>ai_enabled / ai_provider / ai_api_key / ai_model / ai_base_url</code>，在「同步设置 → 🤖 AI 大模型」区域填写。</li>
+    <li>调用路径：浏览器 → FC action=ai → 大模型厂商。API Key 只经请求头传递、不暴露给访客、不落盘。</li>
+    <li>provider 支持三种：<code>deepseek</code>（自动带 baseUrl）、<code>dashscope</code>（阿里百炼，自动带 baseUrl）、<code>custom</code>（任意 OpenAI 兼容接口，需自填 baseUrl + model）。<b>GLM 和混元都属于 custom。</b></li>
+  </ul>
+
+  <h3>2.2 接入流程（3 步）</h3>
+  <ol>
+    <li><b>注册拿 Key</b>：到平台官网注册 → 实名认证 → 创建 API Key（见 2.4 对比）。</li>
+    <li><b>填配置</b>：页面 → 同步设置 → AI 大模型区域：启用开关打开 → provider 选 <code>custom</code> → 填 baseUrl、apiKey、model → 保存。状态徽标变绿即配置成功。</li>
+    <li><b>验证</b>：编辑任一 POI → 「自动填入」→ 若 desc/detail 由 AI 生成即成功；或打开旅途提示弹窗看叙述风格。</li>
+  </ol>
+
+  <h3>2.3 GLM-4-Flash vs Hunyuan-Lite 深度分析（2026-08 最新）</h3>
+  <table>
+    <tr><th>维度</th><th>GLM-4-Flash（智谱）</th><th>Hunyuan-Lite（腾讯混元）</th></tr>
+    <tr><td>官方定位</td><td><b>永久免费档</b>（模型清单 free 分类，价格为 0，非试用额度）</td><td><b>永久免费</b>（官方明确调整为完全免费）</td></tr>
+    <tr><td>当前免费型号</td><td><code>glm-4.7-flash</code>（主力，200K 上下文 / 128K 输出）；<code>glm-4-flash-250414</code>（128K）</td><td><code>hunyuan-lite</code>（256K 上下文）</td></tr>
+    <tr><td>上下文长度</td><td>200K（4.7-flash）/ 128K（250414）</td><td>256K</td></tr>
+    <tr><td>结构化输出（JSON）</td><td class="badge-good">强</td><td>支持</td></tr>
+    <tr><td>Function Calling</td><td class="badge-good">强（官方主推）</td><td>支持</td></tr>
+    <tr><td>OpenAI 兼容接口</td><td>✅ <code>https://open.bigmodel.cn/api/paas/v4</code></td><td>✅ <code>https://api.hunyuan.cloud.tencent.com/v1</code></td></tr>
+    <tr><td>速率限制</td><td>约 30 QPS（个人使用无感）</td><td>有并发限制，个人够用</td></tr>
+    <tr><td>注册难度</td><td>bigmodel.cn，手机号 + 实名，立即可用</td><td>腾讯云账号 + 实名，需开通混元服务</td></tr>
+    <tr><td>稳定性</td><td>高（长期免费线，多型号可切换）</td><td>高（腾讯云背书）</td></tr>
+    <tr><td>坑点</td><td>模型会退役：glm-4.5-flash 已于 2026-01-30 下线（自动路由到 4.7-flash）。<b>模型名务必写当前有效名称</b></td><td>首次开通送的「100 万 token（1 年有效）」是给付费模型的资源包，与 Lite 免费本身无关，别混淆</td></tr>
+  </table>
+
+  <h4>针对本项目的结论与建议</h4>
+  <div class="alert blue"><span class="ico">💡</span><div><b>推荐：GLM 为主（首选 glm-4.7-flash）。</b>理由：① 本项目 AI 最核心的用途是「智能匹配简介」——需要模型稳定输出 JSON（desc/detail），GLM 的结构化输出和 JSON 解析兼容性最好；② 长期免费、无额度焦虑；③ 注册最快（bigmodel.cn 一个页面搞定）；④ 200K 上下文对「生成达人叙述式旅途提示」也绰绰有余。</div></div>
+  <div class="alert yellow"><span class="ico">💡</span><div><b>Hunyuan-Lite 作为备选：</b>256K 上下文在免费档里最激进，适合超长文本；若 GLM 偶尔抽风，可在配置里直接换 provider=自定义 + 混元地址，无需改代码。两款都免费，双 Key 配置 = 双保险。</div></div>
+  <div class="alert red"><span class="ico">🚨</span><div><b>免费 ≠ 无限</b>：免费档有 QPS/并发限制（GLM 约 30 QPS）。本程序「批量一键匹配简介」是串行请求（一次一个），天然规避了并发问题，放心用。另外 Key 只填在页面配置里，经 FC 转发不暴露给游客——<b>不要把 Key 写死在 HTML 里上传</b>。</div></div>
+
+  <h4>推荐配置参数（直接复制）</h4>
+  <pre><code>// GLM（智谱）—— 首选
+provider : custom
+base_url : https://open.bigmodel.cn/api/paas/v4
+model    : glm-4.7-flash
+api_key  : 在 bigmodel.cn 控制台创建
+
+// 腾讯混元 —— 备选
+provider : custom
+base_url : https://api.hunyuan.cloud.tencent.com/v1
+model    : hunyuan-lite
+api_key  : 腾讯云控制台 → 访问管理 → API 密钥</code></pre>
+</section>
+
+<!-- ==================== 板块三 ==================== -->
+<section class="panel" id="s3">
+  <h2><span class="num">3</span>与 AI 对话操作指南（重点）</h2>
+  <p class="sub">基于两天开发中真实发生的重复劳动、错误指令和消耗复盘 —— 哪些习惯在浪费你的积分/token，以及今后怎么跟 AI 高效协作。</p>
+
+  <h3>3.1 这两天真实踩过的坑（按浪费程度排序）</h3>
+  <div class="timeline">
+    <div class="item">
+      <div class="t">🥇 天气模块反复返工 —— 改数据源改了 4 轮</div>
+      <div class="d">Open-Meteo →（误判“海外不可达”）→ 高德 4 天 →（天数不够）→ 双源合并 →（用户实测 Open-Meteo 其实可达）→ 恢复 Open-Meteo 主源。<b>本质错误：没先验证数据源就改代码</b>。若一开始用真实请求（WebFetch）确认 Open-Meteo 可达，能省下大半天。</div>
+    </div>
+    <div class="item">
+      <div class="t">🥈 双文件同步反复出漏 —— 同一批功能同步 3 次仍有差异</div>
+      <div class="d">index.html 和 MiletoPuzhehei.html 必须保持一致（150+ 函数），正则批量同步多次出错：漏函数本体（checkAndMigrate 导致“卡连接中”）、漏 HTML 元素（editImgFile 导致 null 报错）、CSS 不一致（卡片 padding 白边）、替换把函数名改坏（renderMap 递归）。<b>本质错误：改完只验证了“语法”，没验证“两端一致”</b>。</div>
+    </div>
+    <div class="item">
+      <div class="t">🥉 FC 函数 event 格式连猜 3 轮（dict → HTTP 报文 → JSON bytes）</div>
+      <div class="d">因为没先部署“回显诊断版”看真实 event，靠猜浪费 3 轮部署-验证循环。<b>教训：云函数排障先回显，不猜格式</b>。</div>
+    </div>
+    <div class="item">
+      <div class="t">🎗️ 封面“白边/不饱满”反复修 —— 从图片源猜错到容器 padding</div>
+      <div class="d">以为是外链图加载问题，实际根因是 <code>.overview-day-card</code> 的 padding:14px vs 0。<b>教训：视觉 bug 要对比完整 CSS 链，别只看局部。</b></div>
+    </div>
+    <div class="item">
+      <div class="t">🎗️ 天气排序逻辑改了 5+ 次（firstOrder → needWeather → shouldShowWeather → 10km 去重）</div>
+      <div class="d">每次“加一点”规则，业务规则越叠越复杂。<b>教训：需求一次说清“判定规则完整版”，别挤牙膏。</b></div>
+    </div>
+    <div class="item">
+      <div class="t">🎗️ 域名拼写错误 swr4mygeqi / swyrmygeqi 排查半天</div>
+      <div class="d">凭记忆写域名。地址类信息必须复制粘贴。</div>
+    </div>
+  </div>
+
+  <h3>3.2 积分 / Token 消耗大户（你感觉“小改动却很贵”的原因）</h3>
+  <table>
+    <tr><th>#</th><th>浪费场景</th><th>为什么贵</th><th>对策</th></tr>
+    <tr>
+      <td>1</td>
+      <td class="badge-bad">挤牙膏式提需求<br>（“再加一点”“再改一下”）</td>
+      <td>每次修改都是一整轮完整调用：重读 6-7 千行 HTML + 改代码 + 验证 + 汇报。旅途提示功能分了 6+ 轮才定型</td>
+      <td>一次把需求说全：最终文案、样式、交互一次给齐；攒 3~5 个小改动合并成一批做</td>
+    </tr>
+    <tr>
+      <td>2</td>
+      <td class="badge-bad">只改一个文件，下次还要再改另一个</td>
+      <td>双文件架构下默认只改 index，Mileto 遗漏 → 发现后再改一遍 → 双倍消耗</td>
+      <td>每次提需求就明确说「全部修改」或「只改某个文件」（项目长期规则）</td>
+    </tr>
+    <tr>
+      <td>3</td>
+      <td class="badge-bad">反馈 bug 不带截图/不带细节</td>
+      <td>AI 靠猜，猜错一轮再猜一轮。封面白边问题就猜了 2-3 轮</td>
+      <td>截图 + 操作步骤 + 期望行为 + 实际行为，四要素齐了再提问</td>
+    </tr>
+    <tr>
+      <td>4</td>
+      <td class="badge-bad">探索性指令<br>（“试试看”“先这么搞”）</td>
+      <td>探索指令和最终指令成本相同（都要完整执行），试错了再执行一遍=翻倍</td>
+      <td>先让 AI 出方案/影响面，确认后再执行；探索用小规模验证（如先改一行测效果）</td>
+    </tr>
+    <tr>
+      <td>5</td>
+      <td class="badge-bad">改完不推送/不验证就提下一个需求</td>
+      <td>本地改了没推 GitHub → 你测的是旧版 → 报“没生效” → 排查半天发现是缓存/未部署</td>
+      <td>每轮改完：AI 说明改动点 → 推送 → 你强刷验证 → 再开新需求</td>
+    </tr>
+    <tr>
+      <td>6</td>
+      <td class="badge-bad">让 AI 凭记忆/猜测回答数据源、域名、API 行为</td>
+      <td>猜错→验证→返工（Open-Meteo 可达性、FC event 格式、FC 域名都栽过）</td>
+      <td>涉及外部依赖：要求 AI“先实测再下结论”；涉及地址：复制粘贴</td>
+    </tr>
+    <tr>
+      <td>7</td>
+      <td class="badge-warn">没有版本回退点</td>
+      <td>git 只有一个初始 commit，所有改动未提交。一旦改坏（曾发生脚本把文件写坏到 552KB），修复要重新解释一遍上下文，代价极大</td>
+      <td>每完成一个里程碑 commit 一次（哪怕就一句“天气模块完成”），改坏能一条命令回退</td>
+    </tr>
+    <tr>
+      <td>8</td>
+      <td class="badge-warn">微调文案类需求反复迭代</td>
+      <td>“这句话再改柔和点”“再口语一点”——每轮都全量重跑</td>
+      <td>文案类需求给出最终期望的范例句子，一次定型</td>
+    </tr>
+    <tr>
+      <td>9</td>
+      <td class="badge-warn">用模糊词描述 bug</td>
+      <td>“填充不饱满”“有点怪”“不对”——AI 无法定位，只能盲猜</td>
+      <td>描述精确到：哪个页面、哪个按钮、哪个元素、具体现象（如“卡片四边有 14px 白边”）</td>
+    </tr>
+    <tr>
+      <td>10</td>
+      <td class="badge-warn">反复让 AI 重读/重述旧上下文</td>
+      <td>新开对话后 AI 不认识项目，又要从零读文件了解架构</td>
+      <td>项目记忆已存在 .workbuddy/memory/，开新对话时先让它读「项目长期记忆」再干活</td>
+    </tr>
+  </table>
+
+  <h3>3.3 高效对话的黄金法则（今后照着做）</h3>
+  <div class="kpi">
+    <div class="box"><div class="v">一次说全</div><div class="k">目标 + 涉及文件 + 范围 + 验收标准</div></div>
+    <div class="box"><div class="v">先方案后执行</div><div class="k">大改动先要影响范围再动手</div></div>
+    <div class="box"><div class="v">先验证再改码</div><div class="k">数据源/接口/域名一律实测</div></div>
+    <div class="box"><div class="v">改完即验证</div><div class="k">推送 + 强刷 + 确认，再开下一项</div></div>
+  </div>
+  <ol>
+    <li><b>需求四要素模板</b>：① 要做什么 ② 改哪些文件（全部 / 只改 index / 只改 Mileto）③ 做成什么样（可附截图或最终文案）④ 做完怎么验收。</li>
+    <li><b>提 bug 四要素</b>：截图（或复现路径）+ 操作步骤 + 期望行为 + 实际行为。先自行强刷 Ctrl+F5 排除缓存。</li>
+    <li><b>大改动先要方案</b>：说“先别改，给我方案和影响范围” —— 一次确认可以省掉整轮返工。</li>
+    <li><b>改代码前先让 AI 验证假设</b>：涉及天气源/API/云函数/域名，要求“先实测再下结论”，不许猜。</li>
+    <li><b>小改动合并批处理</b>：攒 3-5 个点一次说清，比 5 次小对话省一半以上消耗。</li>
+    <li><b>里程碑即提交</b>：每完成一个功能块，让 AI git commit 一次，建立回退点。</li>
+    <li><b>新对话先加载记忆</b>：项目记忆在 <code>.workbuddy/memory/</code>，开局让 AI 先读「MEMORY.md + 最近日志」再干活。</li>
+    <li><b>敏感信息管理</b>：Token、API Key 只在本地配置/安全文件里，明确要求 AI 不得写入上传文件、不在回复中明文回显。</li>
+    <li><b>验收时双端验证</b>：双文件改动必须让 AI 报告“两文件语法通过 + 关键点 grep 计数”，而不是只说“改完了”。</li>
+  </ol>
+
+  <div class="alert green"><span class="ico">✅</span><div><b>本项目专属规则（已在记忆中长期保存）：</b><br>
+  ① 用户提修改意见时，AI 先问「全部修改」还是「只改某个文件」；<br>
+  ② 双文件同步后必须验证「函数定义+调用成对」；<br>
+  ③ 云端探测一律走 GitHub API（raw/CDN 国内不可达）；<br>
+  ④ 云函数排障先部署回显诊断版，不猜 event 格式。</div></div>
+</section>
+
+<!-- ==================== 板块四 ==================== -->
+<section class="panel" id="s4">
+  <h2><span class="num">4</span>文件清理清单</h2>
+  <p class="sub">对照本机文件夹与 GitHub 云端仓库（yang6245/travel-planner），逐项标注保留 / 可删 / 需注意。已与云端实际内容核对（2026-08-06 15:10）。</p>
+
+  <h3>4.1 本地可删除（已完成使命的临时产物）</h3>
+  <table>
+    <tr><th>路径</th><th>内容</th><th>大小</th><th>判断</th></tr>
+    <tr>
+      <td><code>data_backup/_cloud_current.json</code></td>
+      <td>弥勒 7.34MB 原始 base64 版（迁移前云端备份）</td>
+      <td>7.34 MB</td>
+      <td><span class="tag red">可删</span>云端已是 15.6KB URL 版且 30 图齐全，此文件不再需要。<b>删除前确认云端正常加载一次</b></td>
+    </tr>
+    <tr>
+      <td><code>data_backup/_cloud_genie.json</code></td>
+      <td>格聂南线云端备份副本（20KB，与云端一致）</td>
+      <td>20 KB</td>
+      <td><span class="tag red">可删</span>云端 data/格聂南线/trip.json 完好（20,416B）</td>
+    </tr>
+    <tr>
+      <td><code>_migrate_out/</code>（30 图 + URL 版 trip.json）</td>
+      <td>图片外链化迁移产物本地备份</td>
+      <td>~5 MB</td>
+      <td><span class="tag red">可删</span>云端 images/MiletoPuzhehei 30 张已全部验证 HTTP 200</td>
+    </tr>
+    <tr>
+      <td><code>_sync_charge.py</code> / <code>_sync_day.py</code></td>
+      <td>一次性数据同步脚本（充电站/日程同步用）</td>
+      <td>14 KB</td>
+      <td><span class="tag red">可删</span>任务已完成，无复用价值</td>
+    </tr>
+    <tr>
+      <td><code>fc_proxy/__pycache__/</code></td>
+      <td>Python 编译缓存</td>
+      <td>—</td>
+      <td><span class="tag red">可删</span>随时可再生成</td>
+    </tr>
+    <tr>
+      <td><code>fc_proxy/代码审查与改进报告.md</code></td>
+      <td>v2 时代的历史审查报告（已过时）</td>
+      <td>—</td>
+      <td><span class="tag yellow">可归档</span>若不想留可删；建议保留到 v7 稳定后</td>
+    </tr>
+    <tr>
+      <td><code>创建新旅程.bat</code>（91B）</td>
+      <td>极简批处理入口（实际主脚本是 .ps1）</td>
+      <td>91 B</td>
+      <td><span class="tag yellow">二选一</span>确认 .ps1 可用后 .bat 可删</td>
+    </tr>
+  </table>
+
+  <h3>4.2 建议保留</h3>
+  <table>
+    <tr><th>路径</th><th>理由</th></tr>
+    <tr><td><code>index.html</code> / <code>MiletoPuzhehei.html</code></td><td>核心程序（云端已有同版本 406,625B / 453,671B ✅）</td></tr>
+    <tr><td><code>fc_proxy/fc_proxy.py</code></td><td><b>v7 当前版本</b>，阿里云函数源码的唯一本地副本，严禁删</td></tr>
+    <tr><td><code>fc_proxy/部署说明.md</code></td><td>部署/回退/费用运维手册，长期有效</td></tr>
+    <tr><td><code>data_backup/MiletoPuzhehei/trip.json</code>（1.9MB 压缩版）</td><td>弥勒数据本地兜底备份（当前云端为 URL 版，此备份含真实图片数据）</td></tr>
+    <tr><td><code>data_backup/格聂南线/trip.json</code></td><td>格聂南线本地兜底备份</td></tr>
+    <tr><td><code>migrate_images.py</code> / <code>push_migration.py</code></td><td>可复用的图片外链化迁移工具，未来新行程超 1MB 可复用</td></tr>
+    <tr><td><code>图片外链化改造报告.md</code> / <code>开发总结与运维指南.html</code></td><td>项目文档</td></tr>
+    <tr><td><code>.workbuddy/</code></td><td>项目记忆（AI 的长期上下文），勿删</td></tr>
+  </table>
+
+  <h3>4.3 GitHub 云端仓库现状（已核对）</h3>
+  <table>
+    <tr><th>云端路径</th><th>内容</th><th>判断</th></tr>
+    <tr><td><code>index.html</code></td><td>406,625B = 本地最新版</td><td class="badge-good">✅ 已同步</td></tr>
+    <tr><td><code>MiletoPuzhehei.html</code></td><td>453,671B = 本地最新版</td><td class="badge-good">✅ 已同步</td></tr>
+    <tr><td><code>data/格聂南线/trip.json</code></td><td>20,416B</td><td class="badge-good">✅ 正常</td></tr>
+    <tr><td><code>data/MiletoPuzhehei/trip.json</code></td><td>16,018B（URL 版，已彻底根治 1MB 限制）</td><td class="badge-good">✅ 正常</td></tr>
+    <tr><td><code>images/MiletoPuzhehei/</code></td><td>30 张，单张 ≤410KB</td><td class="badge-good">✅ 正常</td></tr>
+    <tr><td><code>创建新旅程.ps1</code></td><td>云端 6,664B ≠ 本地 5,254B</td><td class="badge-warn">⚠️ 版本不一致</td></tr>
+    <tr><td>其它</td><td>.gitignore、创建新旅程.bat</td><td class="badge-good">✅ 正常</td></tr>
+  </table>
+  <div class="alert yellow"><span class="ico">⚠️</span><div><b>一处需要你确认：</b>云端 <code>创建新旅程.ps1</code>（6,664B）比本地（5,254B）大，两边内容可能不同。若你本地的是新版，下次推送时注意别把云端新版覆盖掉——先 diff 一下再决定以哪个为准。</div></div>
+
+  <h3>4.4 本地 git 状态提醒（重要）</h3>
+  <div class="alert red"><span class="ico">🚨</span><div><b>git 仓库目前只有一个初始 commit（670d0ba），两天来所有新文件（index.html、MiletoPuzhehei.html、fc_proxy/、data_backup/ 等）都处于未提交状态。</b><br>
+  风险：改坏了没有任何回退点。建议今天就把当前稳定版本 <code>git add -A && git commit</code> 一次，建立第一个里程碑快照。敏感文件（配置信息.txt 含 Token、.gh_token.txt）已确认在 .gitignore 中即可放心提交。</div></div>
+</section>
+
+<footer>本报告由开发日志 + 云端实测 + 最新模型调研整理生成 · 更新于 2026-08-06</footer>
+</div>
+</body>
+</html>
