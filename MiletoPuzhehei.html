@@ -3403,7 +3403,9 @@ function autoPrefetchWeather() {
   if (_weatherPrefetched) return;
   _weatherPrefetched = true;
   setTimeout(function() {
-    try { ensureAllDaysWeatherLoaded(function(){}); } catch(e) {}
+    try {
+      ensureAllDaysWeatherLoaded(function() { ensureAITipsAuto(); });
+    } catch(e) {}
   }, 1500);   /* 等页面渲染稳定后再预拉，避免与首屏卡片天气抢队列 */
 }
 
@@ -3782,11 +3784,107 @@ function closeDayTripTipModal() {
   modal.style.display = 'none';
 }
 
+/* ===== AI 旅途提示全站共享：生成结果存 trip.aiTips（云端），游客也能看到；首次/天气重大变化自动触发 ===== */
+function wrapAITipText(text) {
+  return '<div style="line-height:1.8;font-size:13px;white-space:pre-wrap;color:#333;">' + escapeHtml(text) + '</div>';
+}
+function weatherFingerprintItem(f) {
+  if (!f) return 'x';
+  var rainLike = /雨|雪|雷|阵|雹|霰/.test((f.dayWeather || '') + (f.nightWeather || ''));
+  var dt = Math.round((parseFloat(f.dayTemp) || 0) / 5);
+  var nt = Math.round((parseFloat(f.nightTemp) || 0) / 5);
+  return (rainLike ? 'R' : 'N') + dt + '/' + nt;
+}
+function computeWeatherFingerprint() {
+  var parts = [];
+  (trip.days || []).forEach(function(d) {
+    var item = null;
+    (d.pois || []).forEach(function(p) {
+      if (item || !p.lng || !p.lat) return;
+      var w = getWeatherCacheForPOI(p);
+      var f = w ? getDayForecastFromCache(w, d.day) : null;
+      if (f) item = weatherFingerprintItem(f);
+    });
+    parts.push('D' + d.day + ':' + (item || 'x'));
+  });
+  return parts.join('|');
+}
+function withTemporaryToken() {
+  var hadActive = GITHUB_CONFIG.hasToken();
+  var remembered = GITHUB_CONFIG.getRememberedToken();
+  if (!hadActive && remembered) GITHUB_CONFIG.setToken(remembered, false);
+  var restore = function() { if (!hadActive) GITHUB_CONFIG.removeActiveToken(); };
+  if (!GITHUB_CONFIG.hasToken()) return null;
+  return restore;
+}
+function persistAITips() {
+  var restore = withTemporaryToken();
+  if (!restore) return;
+  cloudSave(trip).then(function() { restore(); }).catch(function() { restore(); });
+}
+function ensureAITipsAuto() {
+  if (!GITHUB_CONFIG.hasAi()) return;
+  if (!trip || !trip.days || trip.days.length === 0) return;
+  var restore = withTemporaryToken();
+  if (!restore) return;
+  var newFp = computeWeatherFingerprint();
+  var cur = trip.aiTips || null;
+  var need = !cur || !cur.overview || !cur.weatherFp || cur.weatherFp !== newFp;
+  if (!need) { restore(); return; }
+  var dayList = trip.days.map(function(d) { return d.day; });
+  var results = { overview: null, days: {} };
+  var idx = 0;
+  function promptForDay(day) {
+    var d = trip.days.find(function(x) { return x.day === day; });
+    var poiLines = (d.pois || []).map(function(p) {
+      return '· ' + (p.time || '') + ' ' + p.name + '（' + (p.type || '') + '）' + (p.desc ? '：' + p.desc : '');
+    }).join('\n');
+    return '请为自驾游行程第 ' + day + ' 天撰写旅途提示，当天安排如下：\n' + poiLines +
+      '\n要求：涵盖穿衣建议、驾驶/路况注意、美食推荐、体力提醒、药品准备等内容（按需取舍），条目化列出，200字以内，只返回纯文本，不要标题符号装饰。';
+  }
+  function promptForOverview() {
+    var lines = (trip.days || []).map(function(d) {
+      var pois = (d.pois || []).map(function(p) { return (p.time || '') + ' ' + p.name; }).join('、');
+      return 'DAY' + d.day + '（' + (d.title || '') + '）：' + pois;
+    }).join('\n');
+    return '自驾游行程总览如下：\n' + lines +
+      '\n请撰写整段旅程的旅途提示：总体穿衣建议、全程驾驶与路况注意、必带物品、注意事项、美食与体验亮点，条目化，300字以内，只返回纯文本。';
+  }
+  function nextDay() {
+    if (idx < dayList.length) {
+      var day = dayList[idx]; idx++;
+      callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', promptForDay(day), function(text) {
+        if (text) results.days[day] = text;
+        nextDay();
+      });
+    } else {
+      callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', promptForOverview(), function(text) {
+        if (text) results.overview = text;
+        finalize();
+      });
+    }
+  }
+  function finalize() {
+    var any = !!results.overview;
+    dayList.forEach(function(day) { if (results.days[day]) any = true; });
+    if (any) {
+      trip.aiTips = { overview: results.overview || '', days: results.days, weatherFp: newFp, updatedAt: Date.now() };
+      cloudSave(trip).then(function() { restore(); }).catch(function() { restore(); });
+    } else { restore(); }
+  }
+  nextDay();
+}
+
+
+
+
 /* 详情页：打开当天旅途提示弹窗（先主动加载当天天气再生成内容，避免"暂无天气数据"） */
 function openDayTripTipModal(day) {
   openTripTipModal('<div style="color:#a0aec0;padding:20px 0;text-align:center;">正在加载当天天气与旅途信息...</div>');
   ensureDayWeatherLoaded(day, function() {
-    /* AI 已配置：优先由 AI 生成当天旅途提示；未配置/失败走内置板块 */
+    /* 优先显示云端共享的 AI 旅途提示（所有访客可见）；无则本机生成/内置模板 */
+    var saved = trip.aiTips && trip.aiTips.days && trip.aiTips.days[day];
+    if (saved) { openTripTipModal(wrapAITipText(saved)); return; }
     if (GITHUB_CONFIG.hasAi()) {
       buildDayTripTipWithAI(day, function(html) { openTripTipModal(html); });
     } else {
@@ -3806,7 +3904,13 @@ function buildDayTripTipWithAI(day, callback) {
     '\n要求：涵盖穿衣建议、驾驶/路况注意、美食推荐、体力提醒、药品准备等内容（按需取舍），条目化列出，200字以内，只返回纯文本，不要标题符号装饰。';
   callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', prompt, function(text) {
     if (text) {
-      callback('<div style="line-height:1.8;font-size:13px;white-space:pre-wrap;color:#333;">' + escapeHtml(text) + '</div>');
+      /* 生成成功：写入共享内容（trip.aiTips），静默保存到云端，游客也能看到 */
+      try {
+        if (!trip.aiTips) trip.aiTips = { overview: '', days: {}, weatherFp: '', updatedAt: 0 };
+        trip.aiTips.days[day] = text;
+        persistAITips();
+      } catch(e) {}
+      callback(wrapAITipText(text));
       return;
     }
     callback(buildDayTripTipModalContent(day));
@@ -3878,7 +3982,9 @@ function ensureDayWeatherLoaded(day, callback) {
 function openOverviewTripTip() {
   openTripTipModal('<div style="color:#a0aec0;padding:24px 0;text-align:center;"><div class="spinner" style="margin:0 auto 10px;"></div>正在汇总整个行程的天气与旅途信息...</div>');
   ensureAllDaysWeatherLoaded(function() {
-    /* AI 已配置：优先由 AI 生成总览旅途提示；未配置/失败走内置板块 */
+    /* 优先显示云端共享的 AI 总览旅途提示（所有访客可见）；无则本机生成/内置板块 */
+    var saved = trip.aiTips && trip.aiTips.overview;
+    if (saved) { openTripTipModal(wrapAITipText(saved)); return; }
     if (GITHUB_CONFIG.hasAi()) {
       buildOverviewTipWithAI(function(html) { openTripTipModal(html); });
     } else {
@@ -3897,7 +4003,13 @@ function buildOverviewTipWithAI(callback) {
     '\n请撰写整段旅程的旅途提示：总体穿衣建议、全程驾驶与路况注意、必带物品、注意事项、美食与体验亮点，条目化，300字以内，只返回纯文本。';
   callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', prompt, function(text) {
     if (text) {
-      callback('<div style="line-height:1.8;font-size:13px;white-space:pre-wrap;color:#333;">' + escapeHtml(text) + '</div>');
+      /* 生成成功：写入共享内容（trip.aiTips），静默保存到云端，游客也能看到 */
+      try {
+        if (!trip.aiTips) trip.aiTips = { overview: '', days: {}, weatherFp: '', updatedAt: 0 };
+        trip.aiTips.overview = text;
+        persistAITips();
+      } catch(e) {}
+      callback(wrapAITipText(text));
       return;
     }
     callback(buildTripSummaryHtml());
