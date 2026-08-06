@@ -1427,6 +1427,11 @@
   </div>
 </div>
 
+<div id="aiRiskBar" onclick="openOverviewTripTip()" style="display:none;margin:6px 10px 0;padding:8px 12px;background:#fdecea;border:1px solid #f5c6c0;border-radius:10px;color:#d93026;font-size:12px;cursor:pointer;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(217,48,38,.08);">
+  <span style="font-size:15px;flex-shrink:0;">⚠️</span>
+  <span id="aiRiskText" style="flex:1;line-height:1.5;"></span>
+  <span style="font-size:10px;opacity:.7;">点击查看</span>
+</div>
 <div class="top-bar">
   <button class="tool-btn weather-tool-btn" id="weatherBtn" title="查看所有目的地天气"><svg class="icon"><use xlink:href="#icon-weather-sun"/></svg>天气</button>
   <div id="syncStatus" style="font-size:12px;padding:8px 14px;background:white;border-radius:10px;box-shadow:0 2px 8px rgba(0,0,0,.06);min-height:28px;display:flex;align-items:center;"><span style="color:#888;">● 连接中...</span></div>
@@ -3404,7 +3409,7 @@ function autoPrefetchWeather() {
   _weatherPrefetched = true;
   setTimeout(function() {
     try {
-      ensureAllDaysWeatherLoaded(function() { ensureAITipsAuto(); });
+      ensureAllDaysWeatherLoaded(function() { ensureAITipsAuto(); initWeatherMonitor(); updateRiskBar(); });
     } catch(e) {}
   }, 1500);   /* 等页面渲染稳定后再预拉，避免与首屏卡片天气抢队列 */
 }
@@ -3784,31 +3789,115 @@ function closeDayTripTipModal() {
   modal.style.display = 'none';
 }
 
-/* ===== AI 旅途提示全站共享：生成结果存 trip.aiTips（云端），游客也能看到；首次/天气重大变化自动触发 ===== */
+
+/* ===== AI 旅途提示全站共享 v2：存 trip.aiTips 云端共享；分档监测(高敏1h/中敏3h/低敏12h)；
+   特别重大变化(中大雨/极端天气/大温差) → 更新 + 顶部红色风险提示；重大变化 → 仅更新；
+   监测时间顺延：上次监测时间+周期=下次，打开页面未到点不测、到点/超时测一次 ===== */
 function wrapAITipText(text) {
   return '<div style="line-height:1.8;font-size:13px;white-space:pre-wrap;color:#333;">' + escapeHtml(text) + '</div>';
 }
-function weatherFingerprintItem(f) {
-  if (!f) return 'x';
-  var rainLike = /雨|雪|雷|阵|雹|霰/.test((f.dayWeather || '') + (f.nightWeather || ''));
-  var dt = Math.round((parseFloat(f.dayTemp) || 0) / 5);
-  var nt = Math.round((parseFloat(f.nightTemp) || 0) / 5);
-  return (rainLike ? 'R' : 'N') + dt + '/' + nt;
+/* 该天日期与今天的天数差（行程日期 - 今天） */
+function dayDiffDays(dateStr) {
+  try {
+    var p = String(dateStr).replace(/-/g, '/');
+    var d = new Date(p);
+    var now = new Date();
+    var a = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    var b = new Date(d.getFullYear(), d.getMonth(), d.getDate());
+    return Math.round((b - a) / 86400000);
+  } catch(e) { return 99; }
 }
-function computeWeatherFingerprint() {
-  var parts = [];
+/* 敏感档位：1=高敏(今天/明天) 2=中敏(昨天/后天/大后天) 3=低敏(其余) */
+function tierForDate(dateStr) {
+  var d = dayDiffDays(dateStr);
+  if (d === 0 || d === 1) return 1;
+  if (d === -1 || d === 2 || d === 3) return 2;
+  return 3;
+}
+/* 当前整体监测周期（小时）：取最敏感档位 → 高敏1h / 中敏3h / 低敏12h */
+function currentMonitorPeriod() {
+  var high = false, mid = false;
   (trip.days || []).forEach(function(d) {
-    var item = null;
-    (d.pois || []).forEach(function(p) {
-      if (item || !p.lng || !p.lat) return;
-      var w = getWeatherCacheForPOI(p);
-      var f = w ? getDayForecastFromCache(w, d.day) : null;
-      if (f) item = weatherFingerprintItem(f);
-    });
-    parts.push('D' + d.day + ':' + (item || 'x'));
+    var date = getDayDate(d.day);
+    if (!date) return;
+    var t = tierForDate(date);
+    if (t === 1) high = true; else if (t === 2) mid = true;
   });
-  return parts.join('|');
+  if (high) return 1;
+  if (mid) return 3;
+  return 12;
 }
+/* 降水分级：0=无雨 1=一般降水(小/阵雨雪) 2=中大雨(中/大/暴雨雪) */
+function rainLevel(dw, nw) {
+  var s = (dw || '') + (nw || '');
+  if (/中|大|暴/.test(s) && /雨|雪|雷/.test(s)) return 2;
+  if (/雨|雪|雷|阵|雹|霰/.test(s)) return 1;
+  return 0;
+}
+/* 极端天气：雷暴/冰雹/暴雪/浓雾/沙尘/霾/6级+大风 */
+function isExtremeWeather(dw, nw, win) {
+  var s = (dw || '') + (nw || '');
+  if (/雷|雹|暴雪|浓雾|大雾|沙尘|霾/.test(s)) return true;
+  var m = (win || '').match(/(\d+)\s*级/);
+  if (m && parseInt(m[1], 10) >= 6) return true;
+  return false;
+}
+/* 对比新旧天气，按档位阈值判定变化级别：0=无 1=重大 2=特别重大 */
+function analyzeChange(oldF, newF, tier) {
+  var severeTemp = [5, 10, 15][tier - 1];
+  var majorTemp  = [3, 6, 10][tier - 1];
+  var level = 0, text = '';
+  var dT = Math.max(Math.abs(newF.dt - oldF.dt), Math.abs(newF.nt - oldF.nt));
+  if (dT >= severeTemp) { level = 2; text = '温差' + Math.round(dT) + '°C'; }
+  else if (dT >= majorTemp) { level = Math.max(level, 1); text = '温差' + Math.round(dT) + '°C'; }
+  var oR = rainLevel(oldF.dw, oldF.nw), nR = rainLevel(newF.dw, newF.nw);
+  if (oR !== nR) {
+    if (nR === 2 || oR === 2) { level = 2; text = (text ? text + '；' : '') + '中大雨变化(' + (oldF.dw || '') + '→' + (newF.dw || '') + ')'; }
+    else { level = Math.max(level, 1); text = (text ? text + '；' : '') + '降水变化(' + (oldF.dw || '') + '→' + (newF.dw || '') + ')'; }
+  }
+  var oE = isExtremeWeather(oldF.dw, oldF.nw, oldF.win), nE = isExtremeWeather(newF.dw, newF.nw, newF.win);
+  if (oE !== nE) { level = 2; text = (text ? text + '；' : '') + '极端天气' + (nE ? '出现' : '消散'); }
+  return { level: level, text: text || (newF.dw || '天气变化') };
+}
+/* 生成全程天气快照：{ "日期": {dw,nw,dt,nt,win} } */
+function computeWeatherSnap() {
+  var snap = {};
+  (trip.days || []).forEach(function(d) {
+    var date = getDayDate(d.day);
+    if (!date) return;
+    var f = null;
+    (d.pois || []).forEach(function(p) {
+      if (f || !p.lng || !p.lat) return;
+      var w = getWeatherCacheForPOI(p);
+      var ff = w ? getDayForecastFromCache(w, d.day) : null;
+      if (ff) f = ff;
+    });
+    if (f) snap[date] = { dw: f.dayWeather || '', nw: f.nightWeather || '', dt: parseFloat(f.dayTemp) || 0, nt: parseFloat(f.nightTemp) || 0, win: f.dayWind || '' };
+  });
+  return snap;
+}
+/* 强制刷新高敏天(今天/明天)的天气（Open-Meteo 直拉，不占高德配额），完成后回调 */
+function refreshMeteoForMonitor(done) {
+  var jobs = [];
+  (trip.days || []).forEach(function(d) {
+    var date = getDayDate(d.day);
+    if (!date || tierForDate(date) !== 1) return;
+    (d.pois || []).forEach(function(p) {
+      if (!p.lng || !p.lat) return;
+      var coord = p.lng.toFixed(4) + ',' + p.lat.toFixed(4);
+      var info = adcodeCache[coord];
+      var key = (info && info.adcode) ? info.adcode : ('loc:' + coord);
+      jobs.push(new Promise(function(res) {
+        fetchOpenMeteo(parseFloat(p.lng), parseFloat(p.lat), function(forecasts) {
+          if (forecasts) weatherCache[key] = { forecasts: forecasts };
+          res();
+        });
+      }));
+    });
+  });
+  Promise.all(jobs).then(function() { if (done) done(); }).catch(function() { if (done) done(); });
+}
+/* 临时激活记住版 Token（游客态管理员也能静默保存 AI 内容），返回 restore；无 Token 返回 null */
 function withTemporaryToken() {
   var hadActive = GITHUB_CONFIG.hasToken();
   var remembered = GITHUB_CONFIG.getRememberedToken();
@@ -3817,20 +3906,14 @@ function withTemporaryToken() {
   if (!GITHUB_CONFIG.hasToken()) return null;
   return restore;
 }
+/* 把内存中的 trip.aiTips 静默保存到云端 */
 function persistAITips() {
   var restore = withTemporaryToken();
   if (!restore) return;
   cloudSave(trip).then(function() { restore(); }).catch(function() { restore(); });
 }
-function ensureAITipsAuto() {
-  if (!GITHUB_CONFIG.hasAi()) return;
-  if (!trip || !trip.days || trip.days.length === 0) return;
-  var restore = withTemporaryToken();
-  if (!restore) return;
-  var newFp = computeWeatherFingerprint();
-  var cur = trip.aiTips || null;
-  var need = !cur || !cur.overview || !cur.weatherFp || cur.weatherFp !== newFp;
-  if (!need) { restore(); return; }
+/* 全量生成总览+各天旅途提示；riskReasons 非空=本次有特别重大变化(写入风险提示) */
+function generateAllAITips(restore, riskReasons) {
   var dayList = trip.days.map(function(d) { return d.day; });
   var results = { overview: null, days: {} };
   var idx = 0;
@@ -3838,17 +3921,21 @@ function ensureAITipsAuto() {
     var d = trip.days.find(function(x) { return x.day === day; });
     var poiLines = (d.pois || []).map(function(p) {
       return '· ' + (p.time || '') + ' ' + p.name + '（' + (p.type || '') + '）' + (p.desc ? '：' + p.desc : '');
-    }).join('\n');
-    return '请为自驾游行程第 ' + day + ' 天撰写旅途提示，当天安排如下：\n' + poiLines +
-      '\n要求：涵盖穿衣建议、驾驶/路况注意、美食推荐、体力提醒、药品准备等内容（按需取舍），条目化列出，200字以内，只返回纯文本，不要标题符号装饰。';
+    }).join('\\n');
+    return '请为自驾游行程第 ' + day + ' 天撰写旅途提示，当天安排如下：\\n' + poiLines +
+      '\\n要求：涵盖穿衣建议、驾驶/路况注意、美食推荐、体力提醒、药品准备等内容（按需取舍），条目化列出，200字以内，只返回纯文本，不要标题符号装饰。';
   }
   function promptForOverview() {
     var lines = (trip.days || []).map(function(d) {
       var pois = (d.pois || []).map(function(p) { return (p.time || '') + ' ' + p.name; }).join('、');
       return 'DAY' + d.day + '（' + (d.title || '') + '）：' + pois;
-    }).join('\n');
-    return '自驾游行程总览如下：\n' + lines +
-      '\n请撰写整段旅程的旅途提示：总体穿衣建议、全程驾驶与路况注意、必带物品、注意事项、美食与体验亮点，条目化，300字以内，只返回纯文本。';
+    }).join('\\n');
+    var riskNote = '';
+    if (riskReasons && riskReasons.length) {
+      riskNote = '\\n\\n⚠️ 风险预警（务必在提示中重点提醒防雨/安全/保暖）：' + riskReasons.join('；');
+    }
+    return '自驾游行程总览如下：\\n' + lines + riskNote +
+      '\\n请撰写整段旅程的旅途提示：总体穿衣建议、全程驾驶与路况注意、必带物品、注意事项、美食与体验亮点，条目化，300字以内，只返回纯文本。';
   }
   function nextDay() {
     if (idx < dayList.length) {
@@ -3867,12 +3954,98 @@ function ensureAITipsAuto() {
   function finalize() {
     var any = !!results.overview;
     dayList.forEach(function(day) { if (results.days[day]) any = true; });
-    if (any) {
-      trip.aiTips = { overview: results.overview || '', days: results.days, weatherFp: newFp, updatedAt: Date.now() };
-      cloudSave(trip).then(function() { restore(); }).catch(function() { restore(); });
-    } else { restore(); }
+    if (!any) { restore(); return; }
+    var snap = computeWeatherSnap();
+    var risk = null;
+    if (riskReasons && riskReasons.length) {
+      risk = { text: riskReasons.join('；'), updatedAt: Date.now() };
+    } else {
+      var sList = [];
+      (trip.days || []).forEach(function(d) {
+        var date = getDayDate(d.day);
+        if (!date || !snap[date]) return;
+        var f = snap[date];
+        if (rainLevel(f.dw, f.nw) === 2 || isExtremeWeather(f.dw, f.nw, f.win)) {
+          sList.push('D' + d.day + '（' + (f.dw || '') + ' ' + Math.round(f.dt) + '°C）');
+        }
+      });
+      if (sList.length) risk = { text: sList.join('；'), updatedAt: Date.now() };
+    }
+    trip.aiTips = { overview: results.overview || '', days: results.days, weatherSnap: snap, risk: risk, updatedAt: Date.now() };
+    updateRiskBar();
+    cloudSave(trip).then(function() { restore(); }).catch(function() { restore(); });
   }
   nextDay();
+}
+/* 首次填充：云端无 AI 内容时自动生成（天气预拉完成后调用） */
+function ensureAITipsAuto() {
+  if (!GITHUB_CONFIG.hasAi()) return;
+  if (!trip || !trip.days || trip.days.length === 0) return;
+  var restore = withTemporaryToken();
+  if (!restore) return;
+  var cur = trip.aiTips || null;
+  if (cur && cur.overview && cur.weatherSnap) { restore(); return; }
+  generateAllAITips(restore, null);
+}
+/* ===== 监测引擎：顺延补测（上次监测时间+周期=下次；打开页面未到点不测、到点/超时测一次并顺延） ===== */
+var AI_MONITOR_KEY = 'aiWeatherMonitorAt';
+var aiMonitorTimer = null;
+function initWeatherMonitor() {
+  try { aiMonitorCheck(); } catch(e) {}
+  if (aiMonitorTimer) clearInterval(aiMonitorTimer);
+  aiMonitorTimer = setInterval(function() { try { aiMonitorCheck(); } catch(e) {} }, 10 * 60 * 1000);
+}
+function aiMonitorCheck() {
+  if (!GITHUB_CONFIG.hasAi()) return;
+  if (!trip || !trip.days || trip.days.length === 0) return;
+  var periodH = currentMonitorPeriod();
+  var last = 0;
+  try { last = parseInt(localStorage.getItem(AI_MONITOR_KEY) || '0', 10); } catch(e) {}
+  var now = Date.now();
+  if (last && (now - last) < periodH * 3600000) return;   /* 未到监测时间，不测 */
+  doMonitor(function() { try { localStorage.setItem(AI_MONITOR_KEY, String(Date.now())); } catch(e) {} });
+}
+/* 执行一次监测：刷新高敏天天气 → 对比快照 → 变化则重新生成（特别重大同时出风险提示） */
+function doMonitor(done) {
+  var restore = withTemporaryToken();
+  if (!restore) { if (done) done(); return; }
+  refreshMeteoForMonitor(function() {
+    var newSnap = computeWeatherSnap();
+    var oldSnap = (trip.aiTips && trip.aiTips.weatherSnap) || null;
+    if (!oldSnap) { restore(); if (done) done(); return; }
+    var changed = false, severe = false, reasons = [];
+    (trip.days || []).forEach(function(d) {
+      var date = getDayDate(d.day);
+      if (!date || !oldSnap[date]) return;
+      var nf = newSnap[date];
+      if (!nf) return;
+      var r = analyzeChange(oldSnap[date], nf, tierForDate(date));
+      if (r.level >= 1) {
+        changed = true;
+        if (r.level === 2) severe = true;
+        reasons.push('D' + d.day + '：' + r.text);
+      }
+    });
+    if (changed) {
+      generateAllAITips(restore, severe ? reasons : null);
+    } else {
+      restore();
+    }
+    if (done) done();
+  });
+}
+/* 顶部红色风险提示条（云端共享，游客也可见）；点击打开总览旅途提示 */
+function updateRiskBar() {
+  var bar = document.getElementById('aiRiskBar');
+  var txt = document.getElementById('aiRiskText');
+  if (!bar || !txt) return;
+  var risk = trip && trip.aiTips && trip.aiTips.risk;
+  if (risk && risk.text) {
+    bar.style.display = 'flex';
+    txt.textContent = '天气风险提醒：' + risk.text;
+  } else {
+    bar.style.display = 'none';
+  }
 }
 
 
