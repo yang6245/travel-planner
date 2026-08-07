@@ -40,6 +40,8 @@
     background: var(--bg);
     color: var(--text);
     overflow-x: hidden;
+    /* Q2 防误触：禁止下拉刷新（手机浏览器滚动到顶部后继续下拉会触发整页刷新，编辑时内容易丢失） */
+    overscroll-behavior-y: contain;
     -webkit-font-smoothing: antialiased;
   }
 
@@ -373,6 +375,88 @@
     display:flex; align-items:center; justify-content:center; transition:all .2s;
   }
   .weather-close-btn:hover { background:#e2e8f0; color:#2d3748; }
+
+  /* ===== 天气刷新按钮 + 更新时间（服务端自动化 Q3） ===== */
+  .weather-refresh-row {
+    display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;
+  }
+  .weather-refresh-btn {
+    display:inline-flex; align-items:center; gap:5px;
+    background:linear-gradient(135deg,#4facfe,#3182ce); color:white; border:none;
+    border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer;
+    font-family:inherit; transition:all .2s;
+  }
+  .weather-refresh-btn:active { transform:scale(.95); }
+  .weather-refresh-btn:disabled { opacity:.55; cursor:not-allowed; }
+  .weather-updated-text { font-size:11px; color:#718096; line-height:1.6; flex:1; min-width:180px; }
+
+  /* ===== Q4 启动层（CSS-only，无视频/GIF） ===== */
+  #splashOverlay {
+    position:fixed; inset:0; z-index:9999;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    background:#2f6fed; color:#fff;
+    transition:opacity .45s ease, visibility .45s ease;
+  }
+  #splashOverlay.splash-hidden { opacity:0; visibility:hidden; pointer-events:none; }
+  .splash-logo {
+    width:96px; height:96px; border-radius:50%;
+    background:rgba(255,255,255,.16); border:2px solid rgba(255,255,255,.35);
+    display:flex; align-items:center; justify-content:center; overflow:hidden;
+    box-shadow:0 10px 40px rgba(0,0,0,.22);
+    animation:splashLogoIn .7s ease both;
+  }
+  .splash-logo img { width:100%; height:100%; object-fit:cover; }
+  @keyframes splashLogoIn {
+    0% { transform:scale(.72) translateY(14px); opacity:0; }
+    100% { transform:scale(1) translateY(0); opacity:1; }
+  }
+  .splash-ring {
+    position:absolute; width:132px; height:132px; border-radius:50%;
+    border:2px solid transparent; border-top-color:rgba(255,255,255,.85); border-right-color:rgba(255,255,255,.25);
+    animation:splashSpin 1.1s linear infinite; opacity:.9;
+  }
+  @keyframes splashSpin { to { transform:rotate(360deg); } }
+  /* 标题：逐字"播放"浮现（每个字独立 span，错峰动画，CSS-only 无 GIF/视频）。
+     初始 display:inline-block 保证动画生效；动画结束保持最终态（forwards） */
+  .splash-title {
+    margin-top:18px; font-size:18px; font-weight:700; letter-spacing:2px;
+    text-shadow:0 2px 12px rgba(0,0,0,.25);
+  }
+  .splash-title .splash-char {
+    display:inline-block; white-space:pre;
+    opacity:0; transform:translateY(10px);
+    animation:splashCharIn .4s ease forwards;
+  }
+  @keyframes splashCharIn {
+    0% { opacity:0; transform:translateY(10px); }
+    100% { opacity:1; transform:translateY(0); }
+  }
+  .splash-sub {
+    margin-top:6px; font-size:12px; opacity:.75; letter-spacing:1px;
+    animation:splashTitleIn .6s .3s ease both;
+  }
+  @keyframes splashTitleIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+
+  /* ===== 风险条 v2（Q3 改造：低调红色感叹号图标 + 详情弹窗） ===== */
+  #aiRiskIcon {
+    position:fixed; right:16px; bottom:76px; z-index:940;
+    width:38px; height:38px; border-radius:50%;
+    background:linear-gradient(135deg,#e53e3e,#c53030); color:#fff;
+    display:flex; align-items:center; justify-content:center;
+    font-size:20px; font-weight:800; cursor:pointer;
+    box-shadow:0 4px 14px rgba(197,48,48,.4);
+    transition:transform .2s; line-height:1;
+    animation:riskPulse 2.4s ease infinite;
+  }
+  #aiRiskIcon:active { transform:scale(.9); }
+  #aiRiskIcon .risk-dot {
+    position:absolute; top:-2px; right:-2px; width:12px; height:12px; border-radius:50%;
+    background:#fed7d7; border:2px solid #fff;
+  }
+  @keyframes riskPulse {
+    0%,100% { box-shadow:0 4px 14px rgba(197,48,48,.4); }
+    50% { box-shadow:0 4px 22px rgba(197,48,48,.68); }
+  }
 
   /* ===== 距下一站浮动面板 ===== */
   .eta-panel {
@@ -1383,6 +1467,14 @@
 </head>
 <body>
 
+<!-- Q4 启动层：CSS-only 动画（logo 缩放淡入 + 旋转光环 + 标题渐显）；init 超时 ≤3s 强制移除，隐藏后 pointer-events 失效 -->
+<div id="splashOverlay">
+  <div class="splash-logo"><img id="splashLogoImg" src="icons/splash-logo.png" alt=""></div>
+  <div class="splash-ring"></div>
+  <div class="splash-title" id="splashTitle">行程加载中</div>
+  <div class="splash-sub" id="splashSub">Loading Journey</div>
+</div>
+
 <!-- SVG 图标定义 -->
 <svg style="display:none;" xmlns="http://www.w3.org/2000/svg">
   <symbol id="icon-share" viewBox="0 0 24 24"><path d="M18 16.08c-.76 0-1.44.3-1.96.77L8.91 12.7c.05-.23.09-.46.09-.7s-.04-.47-.09-.7l7.05-4.11c.54.5 1.25.81 2.04.81 1.66 0 3-1.34 3-3s-1.34-3-3-3-3 1.34-3 3c0 .24.04.47.09.7L8.04 9.81C7.5 9.31 6.79 9 6 9c-1.66 0-3 1.34-3 3s1.34 3 3 3c.79 0 1.5-.31 2.04-.81l7.12 4.16c-.05.21-.08.43-.08.65 0 1.61 1.31 2.92 2.92 2.92s2.92-1.31 2.92-2.92-1.31-2.92-2.92-2.92z"/></symbol>
@@ -1427,10 +1519,10 @@
   </div>
 </div>
 
-<div id="aiRiskBar" onclick="openOverviewTripTip()" style="display:none;margin:6px 10px 0;padding:8px 12px;background:#fdecea;border:1px solid #f5c6c0;border-radius:10px;color:#d93026;font-size:12px;cursor:pointer;align-items:center;gap:8px;box-shadow:0 2px 8px rgba(217,48,38,.08);">
-  <span style="font-size:15px;flex-shrink:0;">⚠️</span>
-  <span id="aiRiskText" style="flex:1;line-height:1.5;"></span>
-  <span style="font-size:10px;opacity:.7;">点击查看</span>
+<!-- 风险条 v2：低调红色感叹号图标（云端共享风险，游客也可见）；点击打开风险详情弹窗 -->
+<div id="aiRiskIcon" style="display:none;" title="查看天气风险提醒" onclick="openRiskModal()">
+  <span>!</span>
+  <span class="risk-dot"></span>
 </div>
 <div class="top-bar">
   <button class="tool-btn weather-tool-btn" id="weatherBtn" title="查看所有目的地天气"><svg class="icon"><use xlink:href="#icon-weather-sun"/></svg>天气</button>
@@ -1777,10 +1869,28 @@
 <div class="edit-modal" id="weatherModal" style="display:none;">
   <div class="edit-form weather-form">
     <div class="weather-modal-header" style="display:flex;justify-content:space-between;align-items:center;">
-      <h2 style="margin:0;font-size:18px;"><svg class="icon" style="font-size:20px;margin-right:6px;vertical-align:-0.2em;color:#3182ce;"><use xlink:href="#icon-weather"/></svg>目的地天气 · 7天预报</h2>
-      <button class="weather-close-btn" onclick="closeWeatherModal()" title="关闭"><svg class="icon" style="font-size:14px;"><use xlink:href="#icon-close"/></svg></button>
+      <h2 style="margin:0;font-size:18px;"><svg class="icon" style="font-size:20px;margin-right:6px;vertical-align:-0.2em;color:#3182ce;"><use xlink:href="#icon-weather"/></svg>目的地天气 · 全程预报</h2>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <button class="weather-refresh-btn" id="weatherRefreshBtn" onclick="refreshAllWeatherNow()" title="立即刷新全部天气并重新生成旅途提示（管理员或有 Token 游客可用）"><svg class="icon" style="font-size:12px;"><use xlink:href="#icon-clock"/></svg>刷新天气</button>
+        <button class="weather-close-btn" onclick="closeWeatherModal()" title="关闭"><svg class="icon" style="font-size:14px;"><use xlink:href="#icon-close"/></svg></button>
+      </div>
+    </div>
+    <div class="weather-refresh-row">
+      <div class="weather-updated-text" id="weatherUpdatedText">天气数据更新于 -- · AI 旅途提示更新于 --</div>
     </div>
     <div class="weather-modal-body" id="weatherSummary"></div>
+  </div>
+</div>
+
+<!-- 风险详情弹窗（Q3 改造：点击红色感叹号打开） -->
+<div class="edit-modal" id="riskModal" style="display:none;">
+  <div class="edit-form" style="max-width:520px;">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <h2 style="margin:0;font-size:18px;display:flex;align-items:center;gap:8px;"><span style="width:28px;height:28px;border-radius:50%;background:linear-gradient(135deg,#e53e3e,#c53030);color:#fff;display:inline-flex;align-items:center;justify-content:center;font-size:15px;font-weight:800;">!</span>天气风险提醒</h2>
+      <button onclick="closeRiskModal()" title="关闭" style="background:none;border:none;cursor:pointer;font-size:16px;line-height:1;color:#94a3b8;padding:2px 6px;border-radius:6px;">✕</button>
+    </div>
+    <div id="riskModalContent" style="font-size:13px;line-height:1.8;color:#4a5568;background:#fff5f5;border:1px solid #f5c6c0;border-radius:10px;padding:14px 16px;white-space:pre-wrap;"></div>
+    <div id="riskModalMeta" style="font-size:11px;color:#a0aec0;margin-top:10px;"></div>
   </div>
 </div>
 
@@ -2421,6 +2531,71 @@ function parseAIJson(text) {
     var m = text.match(/\{[\s\S]*\}/);
     return m ? JSON.parse(m[0]) : null;
   } catch(e) { return null; }
+}
+
+/* A 改造：旅途提示生成单一入口（fc_proxy genTips action）。
+   prompt 由服务端 fc_proxy 构建（前端与 GitHub Actions 工作流共用同一份逻辑，避免两份 prompt 维护）；
+   前端只传行程摘要（不含图片/坐标等大字段）。成功回调 JSON 板块对象，失败回调 null。
+   params: { kind:'day'|'overview', day?:number, risk?:string[] } */
+function callGenTips(params, onResult) {
+  if (!GITHUB_CONFIG.hasAi()) { onResult(null); return; }
+  var cfg = GITHUB_CONFIG.getAiConfig();
+  var fcUrl = GITHUB_CONFIG.hasFcProxy() ? GITHUB_CONFIG.getFcProxyUrl() : '';
+  if (!fcUrl) {
+    showToast('AI 生成需要启用 FC 代理（同步设置 → FC代理 按钮）');
+    onResult(null); return;
+  }
+  var tripSummary = {
+    tripName: (trip && trip.tripName) || '',
+    subtitle: (trip && trip.subtitle) || '',
+    days: ((trip && trip.days) || []).map(function(d) {
+      return {
+        day: d.day,
+        title: d.title || '',
+        desc: d.desc || '',
+        pois: (d.pois || []).map(function(p) {
+          return { time: p.time || '', type: p.type || '', name: p.name || '', desc: p.desc || '' };
+        })
+      };
+    })
+  };
+  var body = {
+    action: 'genTips',
+    provider: cfg.provider,
+    apiKey: cfg.apiKey,
+    model: cfg.model,
+    baseUrl: cfg.baseUrl,
+    kind: params.kind,
+    day: params.day || 0,
+    risk: params.risk || null,
+    trip: tripSummary
+  };
+  fetchWithTimeout(fcUrl, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() || GITHUB_CONFIG.getRememberedToken() },
+    body: JSON.stringify(body)
+  }, 30000).then(function(r) {
+    if (!r.ok) throw new Error('AI 服务返回 ' + r.status);
+    return r.json();
+  }).then(function(resp) {
+    if (resp && resp.error) throw new Error(resp.error);
+    var tip = resp && resp.tip;
+    if (tip && typeof tip === 'object') { onResult(tip); return; }
+    /* 兼容旧实现：返回纯文本时包装为 notice 板块 */
+    if (resp && resp.text) {
+      _logAi(true, 'genTips 返回纯文本，包装为 notice：' + String(resp.text).slice(0, 20));
+      onResult({ notice: String(resp.text) });
+      return;
+    }
+    onResult(null);
+  }).catch(function(e) {
+    var msg = String((e && e.message) || e);
+    _logAi(false, msg);
+    updateAiLogs();
+    console.warn('AI 提示生成失败，回退内置模板:', msg);
+    showToast('⚠️ AI 生成失败：' + msg + '（已用内置模板）');
+    onResult(null);
+  });
 }
 /* ===== AI 配置（预留）：同步设置弹窗内编辑，未启用不影响任何功能 ===== */
 function saveAiConfig() {
@@ -3167,6 +3342,57 @@ function startCloudPoll() {
   }, 60000); // 60 秒轮询一次（GitHub API 有频率限制，不宜太频繁）
 }
 
+/* ====================== Q4 启动层 ====================== */
+/* trip.splash 配置块：{logo, bg, title}；缺省回退 icons/splash-logo.png + #2f6fed + 行程名。
+   动画为 CSS-only（禁止视频/GIF）；移除带 ≤3s 超时兜底，隐藏后 pointer-events 失效不挡交互。 */
+var _splashShown = false;
+function renderSplash() {
+  if (_splashShown) return;
+  _splashShown = true;
+  applySplashConfig();
+  /* ≤3s 超时兜底：无论数据是否加载完成，最多展示 3 秒后强制移除 */
+  setTimeout(hideSplash, 3000);
+}
+/* 用当前 trip（可能尚未加载）刷新启动层内容 */
+function applySplashConfig() {
+  var overlay = document.getElementById('splashOverlay');
+  if (!overlay) return;
+  var splash = (trip && trip.splash) || {};
+  var logo = splash.logo || 'icons/splash-logo.png';
+  var bg = splash.bg || '#2f6fed';
+  var title = splash.title || (trip && trip.tripName) || '';
+  var img = document.getElementById('splashLogoImg');
+  if (img && img.src.indexOf(logo) === -1) img.src = logo;
+  if (bg) overlay.style.background = bg;
+  setSplashTitle(title);
+}
+/* 标题逐字"播放"浮现：拆成单字 span，每个字错峰 0.08s 依次弹出（CSS 动画驱动，无 GIF/视频）。
+   未设置标题时保持占位文案 */
+function setSplashTitle(text) {
+  var tEl = document.getElementById('splashTitle');
+  if (!tEl) return;
+  var s = String(text || '').trim();
+  if (!s) { tEl.textContent = '行程加载中'; return; }
+  var html = '';
+  var chars = s.split('');
+  for (var i = 0; i < chars.length; i++) {
+    var c = chars[i];
+    var delay = (0.2 + i * 0.08).toFixed(2);
+    html += '<span class="splash-char" style="animation-delay:' + delay + 's;">' +
+            (c === ' ' ? '&nbsp;' : escapeHtml(c)) + '</span>';
+  }
+  tEl.innerHTML = html;
+}
+/* 数据就绪后调用：立即移除启动层（不等到 3s 超时） */
+function hideSplash() {
+  var overlay = document.getElementById('splashOverlay');
+  if (!overlay) return;
+  overlay.classList.add('splash-hidden');
+}
+function finishSplash() {
+  try { applySplashConfig(); hideSplash(); } catch(e) {}
+}
+
 function loadData() {
   // 自动匹配：检测是否需要迁移旧数据（异步，不阻塞加载；迁移成功则刷新）
   // 注意：checkAndMigrate 在无 Token/已迁移等情况下返回布尔值 false，必须用 Promise.resolve 包一层，
@@ -3199,7 +3425,9 @@ function loadDataInternal() {
         renderOverviewHome();
         updateBadges();
         initMap();
-        autoPrefetchWeather();
+        finishSplash();
+        pingLastAccess();
+        schedulePrefetchWeather(0);
       } else {
         throw new Error('云端数据为空');
       }
@@ -3249,6 +3477,8 @@ function loadDataInternal() {
         renderOverviewHome();
         updateBadges();
         initMap();
+        finishSplash();
+        schedulePrefetchWeather(0);
       }
 
       // 网络错误或404时：尝试用只读模式（raw/CDN）加载数据，至少能显示行程
@@ -3478,7 +3708,13 @@ function flushCloudSave() {
     }
   }
 }
-window.addEventListener('beforeunload', flushCloudSave);
+/* E Q2 防误触：编辑中意外刷新/关闭标签 → 先把草稿强制落盘 localStorage（本地编辑无 Token 也落盘，不丢失） */
+window.addEventListener('beforeunload', function() {
+  if (editMode && trip && trip.days) {
+    try { localStorage.setItem(storageKey(), JSON.stringify(trip)); } catch(e) {}
+  }
+  flushCloudSave();
+});
 
 function saveData() {
   // 保存到本地（立即生效）
@@ -3513,18 +3749,27 @@ function escapeHtml(s) {
   return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 }
 
-/* ===== 天气自动预拉：打开网站后后台静默收集所有天天气（不阻塞 UI），之后点旅途提示/天气按钮秒开 ===== */
+/* ===== 天气自动预拉（Q1 优化）：打开网站后后台静默收集所有天天气（不阻塞 UI），
+   之后点旅途提示/天气按钮秒开。schedulePrefetchWeather(delay) 支持提前（0ms）或等渲染稳定（800ms）启动；
+   delay=0 用于缓存命中秒开场景，与首屏渲染并行拉取 ===== */
 var _weatherPrefetched = false;
-function autoPrefetchWeather() {
+function schedulePrefetchWeather(delay) {
   if (_weatherPrefetched) return;
   _weatherPrefetched = true;
   restoreEditModeIfNeeded();   /* 立即恢复编辑模式（保存 Token reload 后），不依赖天气加载 */
+  var ms = (delay === 0) ? 0 : 800;
   setTimeout(function() {
     try {
-      ensureAllDaysWeatherLoaded(function() { ensureAITipsAuto(); initWeatherMonitor(); updateRiskBar(); });
+      ensureAllDaysWeatherLoaded(function() {
+        ensureAITipsAuto();
+        initWeatherMonitor();
+        updateRiskBar();
+        updateWeatherUpdatedText();
+      });
     } catch(e) {}
-  }, 1500);   /* 等页面渲染稳定后再预拉，避免与首屏卡片天气抢队列 */
+  }, ms);
 }
+function autoPrefetchWeather() { schedulePrefetchWeather(800); }
 
 function updateBadges() {
   document.getElementById('budgetTotal').textContent = trip.totalBudget || 0;
@@ -3908,6 +4153,61 @@ function closeDayTripTipModal() {
 function wrapAITipText(text) {
   return '<div style="line-height:1.8;font-size:13px;white-space:pre-wrap;color:#333;">' + escapeHtml(text) + '</div>';
 }
+/* A 改造：AI 旅途提示 JSON 板块渲染（复用内置"白底+蓝色左边框"卡片风格）。
+   DayTip 6 字段 {clothing,driving,food,fatigue,medicine,notice}
+   OverviewTip 5 字段 {clothing,driving,items,food,notice}
+   字段值支持字符串（按换行/分号拆分）或数组；无内容板块自动隐藏 */
+function wrapAITipObject(tip) {
+  if (!tip || typeof tip !== 'object') return wrapAITipText('');
+  var isOverview = tip.items !== undefined;   /* OverviewTip 含 items，DayTip 不含 */
+  var sections = isOverview ? [
+    { key: 'clothing', icon: '👕', title: '总体穿衣' },
+    { key: 'driving',  icon: '🚗', title: '驾驶路况' },
+    { key: 'items',    icon: '🎒', title: '必带物品' },
+    { key: 'food',     icon: '🍜', title: '美食推荐' },
+    { key: 'notice',   icon: '📌', title: '注意事项' }
+  ] : [
+    { key: 'clothing', icon: '👕', title: '穿衣建议' },
+    { key: 'driving',  icon: '🚗', title: '驾驶路况' },
+    { key: 'food',     icon: '🍜', title: '美食推荐' },
+    { key: 'fatigue',  icon: '😴', title: '体力提醒' },
+    { key: 'medicine', icon: '💊', title: '药品准备' },
+    { key: 'notice',   icon: '📌', title: '旅途注意事项' }
+  ];
+  function tipLines(v) {
+    if (v === undefined || v === null || v === '') return [];
+    if (Array.isArray(v)) return v.map(function(x) { return String(x).trim(); }).filter(Boolean);
+    return String(v).split(/\n|；/).map(function(x) { return x.trim(); }).filter(Boolean);
+  }
+  var html = '<div style="padding:4px 2px;">';
+  var hasAny = false;
+  sections.forEach(function(sec) {
+    var lines = tipLines(tip[sec.key]);
+    if (lines.length === 0) return;
+    hasAny = true;
+    html += '<div style="background:#fff;border-left:3px solid #667eea;border-radius:8px;padding:10px 14px;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,.04);">' +
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:14px;font-weight:700;color:#1a202c;">' +
+        '<span style="font-size:16px;">' + sec.icon + '</span>' +
+        '<span>' + sec.title + '</span>' +
+      '</div>';
+    lines.forEach(function(line) {
+      html += '<div style="display:flex;gap:10px;align-items:flex-start;padding:4px 0;font-size:13px;color:#4a5568;line-height:1.6;">' +
+        '<span style="flex:none;font-size:16px;width:22px;text-align:center;line-height:1.6;">·</span>' +
+        '<span style="flex:1;min-width:0;">' + escapeHtml(line) + '</span>' +
+      '</div>';
+    });
+    html += '</div>';
+  });
+  if (!hasAny) return wrapAITipText('（暂无旅途提示内容）');
+  html += '</div>';
+  return html;
+}
+/* 展示端统一入口：字符串 = 旧纯字符串兼容（wrapAITipText）；对象 = JSON 板块（wrapAITipObject） */
+function wrapAITipContent(content) {
+  if (!content) return wrapAITipText('');
+  if (typeof content === 'string') return wrapAITipText(content);
+  return wrapAITipObject(content);
+}
 /* 该天日期与今天的天数差（行程日期 - 今天） */
 function dayDiffDays(dateStr) {
   try {
@@ -4053,13 +4353,13 @@ function generateAllAITips(restore, riskReasons) {
   function nextDay() {
     if (idx < dayList.length) {
       var day = dayList[idx]; idx++;
-      callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', promptForDay(day), function(text) {
-        if (text) results.days[day] = text;
+      callGenTips({ kind: 'day', day: day }, function(tip) {
+        if (tip) results.days[day] = tip;
         setTimeout(nextDay, 400);   /* 串行间隔 400ms，降低免费模型限流概率 */
       });
     } else {
-      callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', promptForOverview(), function(text) {
-        if (text) results.overview = text;
+      callGenTips({ kind: 'overview', risk: riskReasons }, function(tip) {
+        if (tip) results.overview = tip;
         finalize();
       });
     }
@@ -4085,20 +4385,52 @@ function generateAllAITips(restore, riskReasons) {
       if (sList.length) risk = { text: sList.join('；'), updatedAt: Date.now() };
     }
     trip.aiTips = { overview: results.overview || '', days: results.days, weatherSnap: snap, risk: risk, updatedAt: Date.now() };
+    writeAiTipsCache(trip.aiTips);
     updateRiskBar();
+    updateWeatherUpdatedText();
     showToast('✅ AI 旅途提示已生成并保存');
     cloudSave(trip).then(function() { restore(); }).catch(function() { restore(); });
   }
   nextDay();
 }
+/* ===== AI 旅途提示本地缓存（Q1 优化）：游客态打开页面不重复生成。
+   云端有内容 → 用之并刷新缓存；云端无 → 用缓存；都没有且可生成才生成。
+   缓存按行程名隔离，仅存 JSON 结构（含天气快照，供监测对比复用） ===== */
+function aiTipsCacheKey() {
+  try { return 'travelAiTips_' + encodeURIComponent(trip.tripName || 'default'); } catch(e) { return 'travelAiTips_default'; }
+}
+function readAiTipsCache() {
+  try {
+    var s = localStorage.getItem(aiTipsCacheKey());
+    if (!s) return null;
+    var o = JSON.parse(s);
+    return (o && o.overview) ? o : null;
+  } catch(e) { return null; }
+}
+function writeAiTipsCache(tips) {
+  try { if (tips && tips.overview) localStorage.setItem(aiTipsCacheKey(), JSON.stringify(tips)); } catch(e) {}
+}
 /* 首次填充：云端无 AI 内容时自动生成（天气预拉完成后调用） */
 function ensureAITipsAuto() {
   if (!GITHUB_CONFIG.hasAi()) return;
   if (!trip || !trip.days || trip.days.length === 0) return;
+  var cur = trip.aiTips || null;
+  /* 云端已有完整内容：直接使用，并刷新本地缓存 */
+  if (cur && cur.overview && cur.weatherSnap) {
+    writeAiTipsCache(cur);
+    updateWeatherUpdatedText();
+    return;
+  }
+  /* 云端无：游客态优先用本地缓存，避免每次打开重复生成 */
+  var cached = readAiTipsCache();
+  if (cached && cached.overview && cached.weatherSnap) {
+    trip.aiTips = cached;
+    updateRiskBar();
+    updateWeatherUpdatedText();
+    return;
+  }
   var restore = withTemporaryToken();
   if (!restore) return;
-  var cur = trip.aiTips || null;
-  if (cur && cur.overview && cur.weatherSnap) { restore(); return; }
   generateAllAITips(restore, null);
 }
 /* ===== 监测引擎：顺延补测（上次监测时间+周期=下次；打开页面未到点不测、到点/超时测一次并顺延） ===== */
@@ -4148,18 +4480,131 @@ function doMonitor(done) {
     if (done) done();
   });
 }
-/* 顶部红色风险提示条（云端共享，游客也可见）；点击打开总览旅途提示 */
+/* C 风险条 v2：低调红色感叹号图标（云端共享，游客也可见）；点击打开风险详情弹窗（aiTips.risk 结构化） */
 function updateRiskBar() {
-  var bar = document.getElementById('aiRiskBar');
-  var txt = document.getElementById('aiRiskText');
-  if (!bar || !txt) return;
+  var icon = document.getElementById('aiRiskIcon');
+  if (!icon) return;
   var risk = trip && trip.aiTips && trip.aiTips.risk;
-  if (risk && risk.text) {
-    bar.style.display = 'flex';
-    txt.textContent = '天气风险提醒：' + risk.text;
-  } else {
-    bar.style.display = 'none';
+  icon.style.display = (risk && risk.text) ? 'flex' : 'none';
+}
+/* 风险详情弹窗：显示 aiTips.risk 内容 {text, updatedAt} + 更新时间 */
+function openRiskModal() {
+  var risk = trip && trip.aiTips && trip.aiTips.risk;
+  var content = document.getElementById('riskModalContent');
+  var meta = document.getElementById('riskModalMeta');
+  if (!risk || !risk.text) { closeRiskModal(); return; }
+  content.textContent = risk.text;
+  if (meta) {
+    meta.textContent = risk.updatedAt
+      ? '风险更新时间：' + new Date(risk.updatedAt).toLocaleString('zh-CN', { hour12: false })
+      : '';
   }
+  document.getElementById('riskModal').style.display = 'flex';
+}
+function closeRiskModal() {
+  document.getElementById('riskModal').style.display = 'none';
+}
+
+/* ====================== Q3 服务端自动化（前端配合） ====================== */
+/* H：last_access.json 心跳——仅前端有 Token 者打开时写；
+   工作流只读该文件，now - lastAccess > 24h 则跳过运行（软关闭），下次打开自动恢复。
+   写失败静默忽略，不阻塞页面加载 */
+var _lastAccessPinged = false;
+function lastAccessPath() {
+  var dp = GITHUB_CONFIG.dataPath || 'data/trip.json';
+  var parts = dp.split('/');
+  parts[parts.length - 1] = 'last_access.json';
+  return parts.join('/');
+}
+function pingLastAccess() {
+  if (_lastAccessPinged || !GITHUB_CONFIG.hasToken()) return;
+  _lastAccessPinged = true;
+  try {
+    var path = lastAccessPath();
+    var payload = { lastAccess: Date.now() };
+    var fcUrl = GITHUB_CONFIG.hasFcProxy() ? GITHUB_CONFIG.getFcProxyUrl() : '';
+    var h = { 'Content-Type': 'application/json', 'X-GitHub-Token': GITHUB_CONFIG.getToken() };
+    function put(sha) {
+      if (fcUrl) {
+        return fetchWithTimeout(fcUrl, {
+          method: 'POST', headers: h,
+          body: JSON.stringify({ action: 'save', owner: GITHUB_CONFIG.owner, repo: GITHUB_CONFIG.repo, branch: GITHUB_CONFIG.branch, path: path, sha: sha || '', content: payload })
+        }, 8000);
+      }
+      var body = { message: 'last_access heartbeat', content: utf8ToBase64(JSON.stringify(payload)), branch: GITHUB_CONFIG.branch };
+      if (sha) body.sha = sha;
+      return fetchWithTimeout(GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo + '/contents/' + encodeURIComponent(path),
+        { method: 'PUT', headers: githubHeaders(), body: JSON.stringify(body) }, 8000);
+    }
+    if (fcUrl) {
+      fetchWithTimeout(fcUrl, {
+        method: 'POST', headers: h,
+        body: JSON.stringify({ action: 'read', owner: GITHUB_CONFIG.owner, repo: GITHUB_CONFIG.repo, branch: GITHUB_CONFIG.branch, path: path })
+      }, 8000)
+        .then(function(r) { return r.json(); })
+        .then(function(resp) { return put(resp && resp.sha ? resp.sha : ''); })
+        .catch(function() {});
+    } else {
+      fetchWithTimeout(GITHUB_CONFIG.apiBase + '/' + GITHUB_CONFIG.owner + '/' + GITHUB_CONFIG.repo + '/contents/' + encodeURIComponent(path) + '?ref=' + GITHUB_CONFIG.branch,
+        { headers: githubHeaders() }, 8000)
+        .then(function(r) { if (r.ok) return r.json(); return { sha: '' }; })
+        .then(function(data) { return put(data.sha || ''); })
+        .catch(function() {});
+    }
+  } catch(e) {}
+}
+/* 相对时间（用于"更新于"展示） */
+function relativeTime(ts) {
+  if (!ts) return '--';
+  var diff = Date.now() - ts;
+  if (diff < 60 * 1000) return '刚刚';
+  if (diff < 3600 * 1000) return Math.floor(diff / 60000) + ' 分钟前';
+  if (diff < 86400 * 1000) return Math.floor(diff / 3600000) + ' 小时前';
+  return Math.floor(diff / 86400000) + ' 天前';
+}
+/* 天气弹窗顶部：天气数据更新于 / AI 旅途提示更新于（相对时间） */
+function updateWeatherUpdatedText() {
+  var el = document.getElementById('weatherUpdatedText');
+  if (!el) return;
+  var wu = (trip && trip.weatherUpdatedAt) || 0;
+  var au = (trip && trip.aiTips && trip.aiTips.updatedAt) || 0;
+  el.textContent = '天气数据更新于 ' + relativeTime(wu) +
+                   ' · AI 旅途提示更新于 ' + relativeTime(au);
+}
+/* 刷新按钮仅"管理员或有 Token 游客"可见可点 */
+function updateWeatherRefreshBtn() {
+  var btn = document.getElementById('weatherRefreshBtn');
+  if (!btn) return;
+  btn.style.display = GITHUB_CONFIG.hasToken() ? 'inline-flex' : 'none';
+}
+/* H：刷新按钮——立即刷新全部天气 + 重新生成旅途提示 + 存云端 */
+var _refreshingWeather = false;
+function refreshAllWeatherNow() {
+  var btn = document.getElementById('weatherRefreshBtn');
+  if (_refreshingWeather) return;
+  if (!GITHUB_CONFIG.hasToken()) { showToast('刷新需要 Token（进入编辑模式后可用）'); return; }
+  _refreshingWeather = true;
+  if (btn) { btn.disabled = true; btn.textContent = '刷新中...'; }
+  function finish(msg) {
+    _refreshingWeather = false;
+    if (btn) { btn.disabled = false; btn.textContent = '刷新天气'; }
+    if (msg) showToast(msg);
+  }
+  ensureAllDaysWeatherLoaded(function() {
+    trip.weatherUpdatedAt = Date.now();
+    try { localStorage.setItem(storageKey(), JSON.stringify(trip)); } catch(e) {}
+    updateWeatherUpdatedText();
+    renderWeatherSummary();
+    if (GITHUB_CONFIG.hasAi()) {
+      /* 重新生成旅途提示（generateAllAITips 内部完成云端保存） */
+      var restore = withTemporaryToken();
+      if (!restore) { finish('✅ 天气已刷新（未生成 AI 提示：无 Token）'); return; }
+      generateAllAITips(restore, null);
+      finish('✅ 天气已刷新，正在重新生成 AI 旅途提示...');
+    } else {
+      cloudSave(trip).then(function() { finish('✅ 天气已刷新并保存'); }).catch(function() { finish('⚠️ 天气已刷新，云端保存失败'); });
+    }
+  });
 }
 
 
@@ -4169,38 +4614,38 @@ function updateRiskBar() {
 function openDayTripTipModal(day) {
   openTripTipModal('<div style="color:#a0aec0;padding:20px 0;text-align:center;">正在加载当天天气与旅途信息...</div>');
   ensureDayWeatherLoaded(day, function() {
-    /* 优先显示云端共享的 AI 旅途提示（所有访客可见）；无则本机生成/内置模板 */
+    /* 优先显示云端共享的 AI 旅途提示（所有访客可见，兼容旧字符串/新 JSON）；无则本机生成/内置模板 */
     var saved = trip.aiTips && trip.aiTips.days && trip.aiTips.days[day];
-    if (saved) { openTripTipModal(wrapAITipText(saved)); return; }
+    if (saved) { openTripTipModal(wrapAITipContent(saved)); return; }
     if (GITHUB_CONFIG.hasAi()) {
-      buildDayTripTipWithAI(day, function(html) { openTripTipModal(html); });
+      buildDayTripTipWithAI(day, function(obj) {
+        if (obj) openTripTipModal(wrapAITipObject(obj));
+        else openTripTipModal(buildDayTripTipModalContent(day));
+      });
     } else {
       openTripTipModal(buildDayTripTipModalContent(day));
     }
   });
 }
 
-/* AI 生成某天旅途提示（预留）：构造当天行程 prompt → callLLM → 失败回退内置板块 */
-function buildDayTripTipWithAI(day, callback) {
+/* A 改造：AI 生成某天旅途提示（JSON 板块）。经 fc_proxy genTips 单一入口（prompt 服务端构建），
+   成功回调 DayTip 对象；失败回调 null（调用方回退内置模板） */
+function buildDayTripTipWithAI(day, done) {
   var d = trip.days.find(function(x) { return x.day === day; });
-  if (!d) { callback(buildDayTripTipModalContent(day)); return; }
-  var poiLines = (d.pois || []).map(function(p) {
-    return '· ' + (p.time || '') + ' ' + p.name + '（' + (p.type || '') + '）' + (p.desc ? '：' + p.desc : '');
-  }).join('\n');
-  var prompt = '请为自驾游行程第 ' + day + ' 天撰写旅途提示，当天安排如下：\n' + poiLines +
-    '\n要求：涵盖穿衣建议、驾驶/路况注意、美食推荐、体力提醒、药品准备等内容（按需取舍），条目化列出，200字以内，只返回纯文本，不要标题符号装饰。';
-  callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', prompt, function(text) {
-    if (text) {
-      /* 生成成功：写入共享内容（trip.aiTips），静默保存到云端，游客也能看到 */
+  if (!d) { done(null); return; }
+  callGenTips({ kind: 'day', day: day }, function(tip) {
+    if (tip) {
+      /* 生成成功：写入共享内容（trip.aiTips JSON），静默保存到云端 + 本地缓存，游客也能看到 */
       try {
-        if (!trip.aiTips) trip.aiTips = { overview: '', days: {}, weatherFp: '', updatedAt: 0 };
-        trip.aiTips.days[day] = text;
+        if (!trip.aiTips) trip.aiTips = { overview: '', days: {}, weatherSnap: null, risk: null, updatedAt: 0 };
+        trip.aiTips.days[day] = tip;
+        writeAiTipsCache(trip.aiTips);
         persistAITips();
       } catch(e) {}
-      callback(wrapAITipText(text));
+      done(tip);
       return;
     }
-    callback(buildDayTripTipModalContent(day));
+    done(null);
   });
 }
 
@@ -4269,37 +4714,36 @@ function ensureDayWeatherLoaded(day, callback) {
 function openOverviewTripTip() {
   openTripTipModal('<div style="color:#a0aec0;padding:24px 0;text-align:center;"><div class="spinner" style="margin:0 auto 10px;"></div>正在汇总整个行程的天气与旅途信息...</div>');
   ensureAllDaysWeatherLoaded(function() {
-    /* 优先显示云端共享的 AI 总览旅途提示（所有访客可见）；无则本机生成/内置板块 */
+    /* 优先显示云端共享的 AI 总览旅途提示（所有访客可见，兼容旧字符串/新 JSON）；无则本机生成/内置板块 */
     var saved = trip.aiTips && trip.aiTips.overview;
-    if (saved) { openTripTipModal(wrapAITipText(saved)); return; }
+    if (saved) { openTripTipModal(wrapAITipContent(saved)); return; }
     if (GITHUB_CONFIG.hasAi()) {
-      buildOverviewTipWithAI(function(html) { openTripTipModal(html); });
+      buildOverviewTipWithAI(function(obj) {
+        if (obj) openTripTipModal(wrapAITipObject(obj));
+        else openTripTipModal(buildTripSummaryHtml());
+      });
     } else {
       openTripTipModal(buildTripSummaryHtml());
     }
   });
 }
 
-/* AI 生成总览旅途提示（预留）：构造全程行程摘要 → callLLM → 失败回退内置板块 */
-function buildOverviewTipWithAI(callback) {
-  var lines = (trip.days || []).map(function(d) {
-    var pois = (d.pois || []).map(function(p) { return (p.time || '') + ' ' + p.name; }).join('、');
-    return 'DAY' + d.day + '（' + (d.title || '') + '）：' + pois;
-  }).join('\n');
-  var prompt = '自驾游行程总览如下：\n' + lines +
-    '\n请撰写整段旅程的旅途提示：总体穿衣建议、全程驾驶与路况注意、必带物品、注意事项、美食与体验亮点，条目化，300字以内，只返回纯文本。';
-  callLLM('你是资深自驾游领队，给出实用、贴心的旅途提示。', prompt, function(text) {
-    if (text) {
-      /* 生成成功：写入共享内容（trip.aiTips），静默保存到云端，游客也能看到 */
+/* A 改造：AI 生成总览旅途提示（JSON 板块）。经 fc_proxy genTips 单一入口，
+   成功回调 OverviewTip 对象；失败回调 null（调用方回退内置板块） */
+function buildOverviewTipWithAI(done) {
+  callGenTips({ kind: 'overview' }, function(tip) {
+    if (tip) {
+      /* 生成成功：写入共享内容（trip.aiTips JSON），静默保存到云端 + 本地缓存，游客也能看到 */
       try {
-        if (!trip.aiTips) trip.aiTips = { overview: '', days: {}, weatherFp: '', updatedAt: 0 };
-        trip.aiTips.overview = text;
+        if (!trip.aiTips) trip.aiTips = { overview: '', days: {}, weatherSnap: null, risk: null, updatedAt: 0 };
+        trip.aiTips.overview = tip;
+        writeAiTipsCache(trip.aiTips);
         persistAITips();
       } catch(e) {}
-      callback(wrapAITipText(text));
+      done(tip);
       return;
     }
-    callback(buildTripSummaryHtml());
+    done(null);
   });
 }
 
@@ -4875,6 +5319,23 @@ function wmoToText(code) {
   return wmoWeatherMap[code] !== undefined ? wmoWeatherMap[code] : '未知';
 }
 
+/* B 雷暴修正：天气文本统一出口——所有天气判定/展示均经此函数规范化。
+   1) Open-Meteo 雷暴码(95/96/99)降级为"雷阵雨"类：避免直接把预测性雷暴码标为"雷暴/雷暴伴冰雹/强雷暴伴冰雹"
+      误导游客与风险判定（Open-Meteo 在中国内陆雷暴预测准确率有限）；
+   2) 高德中文文本已是规范描述，直接透传；
+   3) 未知/异常输入兜底原样返回。
+   禁止项：不得直接采用 Open-Meteo 雷暴码标雷暴，必须经此出口修正。 */
+function getDisplayWeather(text) {
+  if (!text) return '';
+  var s = String(text);
+  /* 雷暴码降级（数字码或已映射的中文描述统一处理） */
+  if (s === '95' || s === '96' || s === '99' ||
+      s === '雷暴' || s === '雷暴伴冰雹' || s === '强雷暴伴冰雹') {
+    return '雷阵雨';
+  }
+  return s;
+}
+
 /* 风向角度转中文方位 */
 function windDirToText(deg) {
   if (deg === undefined || deg === null || isNaN(deg)) return '';
@@ -4922,30 +5383,41 @@ function dateToWeek(dateStr) {
   return d.getDay();
 }
 
-/* 获取多日天气预报：Open-Meteo 为主源（10 天，覆盖行程全部日期，POI 卡片 3 天/天气汇总 7 天靠它），
-   高德（4 天）仅在 Open-Meteo 失败时兜底。注意：不可把高德当主源，它只返回 4 天，行程超出会日期错位/显示不全 */
+/* G Q5 天气解耦：天气窗口 = min(行程天数, 数据源上限)，支持大于 7 天的行程。
+   数据源上限：高德 4 天 + Open-Meteo 16 天兜底补齐，合并后窗口上限 16 天 */
+var WEATHER_SOURCE_MAX_DAYS = 16;
+function weatherWindowDays() {
+  var tripDays = (trip && trip.days && trip.days.length) || 7;
+  return Math.max(1, Math.min(tripDays, WEATHER_SOURCE_MAX_DAYS));
+}
+
+/* 获取多日天气预报：高德为主源（当天起 4 天，国内稳定准确），Open-Meteo 兜底补齐缺失日期
+   （16 天，覆盖行程全部日期，支持 >7 天行程）。合并策略：高德优先，Open-Meteo 补缺失，按日期升序。
+   注意：高德只返回 4 天，行程超出部分必须由 Open-Meteo 补齐，否则最后几天会显示不全 */
 function fetchWeather7Days(lng, lat, callback) {
-  /* Open-Meteo 主源：10 天（用户环境实测可达，能正常显示 10 天预报） */
-  fetchOpenMeteo(lng, lat, function(omForecasts) {
-    if (omForecasts && omForecasts.length > 0) {
-      callback(omForecasts);
-      return;
-    }
-    /* Open-Meteo 失败 → 高德兜底（4 天，当天数据可用） */
-    var adcode = null;
-    try {
-      var key = lng.toFixed(4) + ',' + lat.toFixed(4);
-      var info = adcodeCache[key];
-      if (info && info.adcode) adcode = info.adcode;
-    } catch(e) {}
-    if (adcode) {
-      fetchAmapWeather(adcode, function(amForecasts) {
-        if (amForecasts && amForecasts.length > 0) callback(amForecasts);
-        else callback(null);
-      });
-    } else {
+  var adcode = null;
+  try {
+    var key = lng.toFixed(4) + ',' + lat.toFixed(4);
+    var info = adcodeCache[key];
+    if (info && info.adcode) adcode = info.adcode;
+  } catch(e) {}
+  /* 高德主源拉取（adcode 未知则跳过，交给 Open-Meteo 兜底） */
+  function fetchAmap(cb) {
+    if (adcode) fetchAmapWeather(adcode, function(am) { cb(am); });
+    else cb(null);
+  }
+  /* Open-Meteo 兜底（仅坐标即可，不依赖 adcode） */
+  function fetchOm(cb) {
+    fetchOpenMeteo(lng, lat, function(om) { cb(om); });
+  }
+  fetchAmap(function(amForecasts) {
+    fetchOm(function(omForecasts) {
+      var merged = mergeForecasts(amForecasts, omForecasts);
+      if (merged && merged.length > 0) { callback(merged); return; }
+      if (amForecasts && amForecasts.length > 0) { callback(amForecasts); return; }
+      if (omForecasts && omForecasts.length > 0) { callback(omForecasts); return; }
       callback(null);
-    }
+    });
   });
 }
 
@@ -4972,8 +5444,9 @@ function fetchAmapWeather(adcode, callback) {
           return {
             date: c.date,
             week: c.week,
-            dayWeather: c.dayweather || '',
-            nightWeather: c.nightweather || '',
+            /* B 雷暴修正：统一经 getDisplayWeather 出口（高德文本已是规范中文，透传；未知兜底） */
+            dayWeather: getDisplayWeather(c.dayweather || ''),
+            nightWeather: getDisplayWeather(c.nightweather || ''),
             dayTemp: c.daytemp,
             nightTemp: c.nighttemp,
             dayWind: (c.daywind || '') + (c.daypower ? ' ' + c.daypower + '级' : '')
@@ -5001,11 +5474,13 @@ function fetchOpenMeteo(lng, lat, callback) {
     if (data && data.daily && data.daily.time && data.daily.time.length > 0) {
       var forecasts = data.daily.time.map(function(date, i) {
         var code = data.daily.weathercode[i];
+        /* B 雷暴修正：统一经 getDisplayWeather 出口（Open-Meteo 95/96/99 降级为雷阵雨类） */
+        var wText = getDisplayWeather(wmoToText(code));
         return {
           date: date,
           week: dateToWeek(date),
-          dayWeather: wmoToText(code),
-          nightWeather: wmoToText(code),
+          dayWeather: wText,
+          nightWeather: wText,
           dayTemp: data.daily.temperature_2m_max[i],
           nightTemp: data.daily.temperature_2m_min[i],
           dayWind: windSpeedToLevel(data.daily.windspeed_10m_max[i]) + ' ' + windDirToText(data.daily.winddirection_10m_dominant[i])
@@ -5198,6 +5673,8 @@ function showWeatherError(day, index, msg) {
 /* 打开天气汇总弹窗 */
 function openWeatherModal() {
   document.getElementById('weatherModal').style.display = 'flex';
+  updateWeatherUpdatedText();
+  updateWeatherRefreshBtn();
   renderWeatherSummary();
 }
 
@@ -5363,7 +5840,7 @@ function renderWeatherSummaryList(cityGroups, totalPoiCount) {
   html += '<span>·</span>';
   html += '<span>合并自 <b>' + totalPoiCount + '</b> 个行程地点</span>';
   html += '<span>·</span>';
-  html += '<span>未来 <b>7</b> 天天气预报</span>';
+  html += '<span>未来 <b>' + weatherWindowDays() + '</b> 天预报（覆盖全部行程）</span>';
   html += '</div>';
 
   groups.forEach(function(g) {
@@ -5394,14 +5871,16 @@ function renderWeatherSummaryList(cityGroups, totalPoiCount) {
     html += '<div class="weather-city-sub">包含：' + poiNamesHtml + '</div>';
 
     if (weather && weather.forecasts && weather.forecasts.length > 0) {
-      /* 显示 7 天预报：优先从行程第一天对应日期开始（覆盖整个行程），预报覆盖不到时回退前 7 天 */
+      /* 显示窗口 = min(行程天数, 数据源上限)（G Q5 解耦，支持 >7 天）；
+         优先从行程第一天对应日期开始（覆盖整个行程），预报覆盖不到时回退前 N 天 */
       var day1 = getDayDate(1);
       var startIdx = -1;
       for (var fi = 0; fi < weather.forecasts.length; fi++) {
         if (weather.forecasts[fi].date === day1) { startIdx = fi; break; }
       }
-      var displayForecasts = startIdx >= 0 ? weather.forecasts.slice(startIdx, startIdx + 7)
-                                           : weather.forecasts.slice(0, 7);
+      var wnd = weatherWindowDays();
+      var displayForecasts = startIdx >= 0 ? weather.forecasts.slice(startIdx, startIdx + wnd)
+                                           : weather.forecasts.slice(0, wnd);
       html += '<div class="weather-city-days">';
       displayForecasts.forEach(function(f) {
         var dateStr = f.date ? f.date.substring(5) : '';
@@ -9008,6 +9487,7 @@ window.addEventListener('resize', function() {
 });
 
 /* ====================== 启动 ====================== */
+renderSplash();   /* Q4 启动层：立即显示（数据加载中），加载完成/超时 3s 自动移除 */
 loadData();
 
 // URL 调试参数：?ui=table 自动进入编辑模式并打开表格编辑（便于快速检查布局）
