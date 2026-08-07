@@ -386,13 +386,16 @@
     display:flex; align-items:center; gap:8px; margin-bottom:10px; flex-wrap:wrap;
   }
   .weather-refresh-btn {
-    display:inline-flex; align-items:center; gap:5px;
+    display:inline-flex; align-items:center; justify-content:center;
     background:linear-gradient(135deg,#4facfe,#3182ce); color:white; border:none;
-    border-radius:8px; padding:7px 14px; font-size:12px; font-weight:600; cursor:pointer;
-    font-family:inherit; transition:all .2s;
+    border-radius:50%; width:34px; height:34px; font-size:14px; font-weight:600; cursor:pointer;
+    font-family:inherit; transition:all .2s; flex:none;
   }
   .weather-refresh-btn:active { transform:scale(.95); }
   .weather-refresh-btn:disabled { opacity:.55; cursor:not-allowed; }
+  .weather-refresh-btn svg { display:block; }
+  .weather-refresh-btn.spin svg { animation:btnSpin 1s linear infinite; }
+  @keyframes btnSpin { to { transform:rotate(360deg); } }
   .weather-updated-text { font-size:11px; color:#718096; line-height:1.6; flex:1; min-width:180px; }
 
   /* ===== Q4 启动层（CSS-only，无视频/GIF）=====
@@ -1890,7 +1893,7 @@
     <div class="weather-modal-header" style="display:flex;justify-content:space-between;align-items:center;">
       <h2 style="margin:0;font-size:18px;"><svg class="icon" style="font-size:20px;margin-right:6px;vertical-align:-0.2em;color:#3182ce;"><use xlink:href="#icon-weather"/></svg>目的地天气 · 全程预报</h2>
       <div style="display:flex;align-items:center;gap:8px;">
-        <button class="weather-refresh-btn" id="weatherRefreshBtn" onclick="refreshAllWeatherNow()" title="立即刷新全部天气并重新生成旅途提示（管理员或有 Token 游客可用）"><svg class="icon" style="font-size:12px;"><use xlink:href="#icon-clock"/></svg>刷新天气</button>
+        <button class="weather-refresh-btn" id="weatherRefreshBtn" onclick="refreshAllWeatherNow()" title="立即刷新全部天气并重新生成旅途提示（管理员或有 Token 游客可用）"><svg class="icon" style="font-size:15px;"><use xlink:href="#icon-clock"/></svg></button>
         <button class="weather-close-btn" onclick="closeWeatherModal()" title="关闭"><svg class="icon" style="font-size:14px;"><use xlink:href="#icon-close"/></svg></button>
       </div>
     </div>
@@ -1996,7 +1999,7 @@
       <h2 style="margin:0;font-size:17px;">💡 旅途提示</h2>
       <div style="display:flex;align-items:center;gap:8px;">
         <span class="weather-updated-text" id="tripTipUpdatedText" style="font-size:11px;color:#a0aec0;margin-right:2px;">AI 旅途提示更新于 --</span>
-        <button class="weather-refresh-btn" id="tripTipRefreshBtn" onclick="refreshTripTipNow()" title="重新生成当前旅途提示（管理员或有 Token 游客可用）"><svg class="icon" style="font-size:12px;"><use xlink:href="#icon-clock"/></svg>重新生成</button>
+        <button class="weather-refresh-btn" id="tripTipRefreshBtn" onclick="refreshTripTipNow()" title="重新生成当前旅途提示（管理员或有 Token 游客可用）"><svg class="icon" style="font-size:15px;"><use xlink:href="#icon-clock"/></svg></button>
         <button class="modal-close" onclick="closeDayTripTipModal()" aria-label="关闭"><svg class="icon"><use xlink:href="#icon-close"/></svg></button>
       </div>
     </div>
@@ -3981,7 +3984,10 @@ function openTripTipModal(html) {
 /* 旅途提示弹窗内的"重新生成"按钮：仅管理员或有 Token 游客可见可点 */
 function updateTripTipRefreshBtn() {
   var btn = document.getElementById('tripTipRefreshBtn');
-  if (btn) btn.style.display = GITHUB_CONFIG.hasToken() ? 'inline-flex' : 'none';
+  if (!btn) return;
+  /* 仅总览旅途提示弹窗显示（每天详情的旅途提示不显示刷新按钮） */
+  var show = GITHUB_CONFIG.hasToken() && _tipModalCtx && _tipModalCtx.kind === 'overview';
+  btn.style.display = show ? 'inline-flex' : 'none';
 }
 
 /* 重新生成当前旅途提示（总览或某一天），写回云端，游客下次打开即看到新版。
@@ -3992,10 +3998,10 @@ function refreshTripTipNow() {
   if (!GITHUB_CONFIG.hasToken()) { showToast('重新生成需要 Token（进入编辑模式后可用）'); return; }
   var btn = document.getElementById('tripTipRefreshBtn');
   _refreshingTripTip = true;
-  if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+  if (btn) { btn.disabled = true; btn.classList.add('spin'); }
   function finish() {
     _refreshingTripTip = false;
-    if (btn) { btn.disabled = false; btn.textContent = '重新生成'; }
+    if (btn) { btn.disabled = false; btn.classList.remove('spin'); }
   }
   var ctx = _tipModalCtx || { kind: 'overview' };
   openTripTipModal('<div style="color:#a0aec0;padding:24px 0;text-align:center;"><div class="spinner" style="margin:0 auto 10px;"></div>正在重新生成旅途提示...</div>');
@@ -4269,26 +4275,21 @@ function writeAiTipsCache(tips) {
 }
 /* 首次填充：云端无 AI 内容时自动生成（天气预拉完成后调用） */
 function ensureAITipsAuto() {
-  if (!GITHUB_CONFIG.hasAi()) return;
   if (!trip || !trip.days || trip.days.length === 0) return;
   var cur = trip.aiTips || null;
   /* 云端已有完整内容：直接使用，并刷新本地缓存 */
   if (cur && cur.overview && cur.weatherSnap) {
     writeAiTipsCache(cur);
-    updateWeatherUpdatedText();
+    updateTripTipUpdatedText();
     return;
   }
-  /* 云端无：游客态优先用本地缓存，避免每次打开重复生成 */
+  /* 云端无：游客态优先用本地缓存（只拉取，不自动生成；生成交给工作流/手动刷新按钮） */
   var cached = readAiTipsCache();
   if (cached && cached.overview && cached.weatherSnap) {
     trip.aiTips = cached;
-    updateRiskBar();
-    updateWeatherUpdatedText();
+    updateTripTipUpdatedText();
     return;
   }
-  var restore = withTemporaryToken();
-  if (!restore) return;
-  generateAllAITips(restore, null);
 }
 /* ===== 监测引擎：顺延补测（上次监测时间+周期=下次；打开页面未到点不测、到点/超时测一次并顺延） ===== */
 var AI_MONITOR_KEY = 'aiWeatherMonitorAt';
@@ -4446,10 +4447,10 @@ function refreshAllWeatherNow() {
   if (_refreshingWeather) return;
   if (!GITHUB_CONFIG.hasToken()) { showToast('刷新需要 Token（进入编辑模式后可用）'); return; }
   _refreshingWeather = true;
-  if (btn) { btn.disabled = true; btn.textContent = '刷新中...'; }
+  if (btn) { btn.disabled = true; btn.classList.add('spin'); }
   function finish(msg) {
     _refreshingWeather = false;
-    if (btn) { btn.disabled = false; btn.textContent = '刷新天气'; }
+    if (btn) { btn.disabled = false; btn.classList.remove('spin'); }
     if (msg) showToast(msg);
   }
   ensureAllDaysWeatherLoaded(function() {
@@ -4482,18 +4483,8 @@ function openDayTripTipModal(day) {
     ensureDayWeatherLoaded(day, function() {});
     return;
   }
-  /* 云端无缓存 → 走原流程（天气先行） */
-  openTripTipModal('<div style="color:#a0aec0;padding:20px 0;text-align:center;">正在加载当天天气与旅途信息...</div>');
-  ensureDayWeatherLoaded(day, function() {
-    if (GITHUB_CONFIG.hasAi()) {
-      buildDayTripTipWithAI(day, function(obj) {
-        if (obj) openTripTipModal(wrapAITipObject(obj));
-        else openTripTipModal(buildDayTripTipModalContent(day));
-      });
-    } else {
-      openTripTipModal(buildDayTripTipModalContent(day));
-    }
-  });
+  /* 云端无缓存 → 直接显示内置模板（不等待天气、不自动生成；生成交给工作流/手动刷新按钮） */
+  openTripTipModal(buildDayTripTipModalContent(day));
 }
 
 /* A 改造：AI 生成某天旅途提示（JSON 板块）。经 fc_proxy genTips 单一入口（prompt 服务端构建），
@@ -4592,18 +4583,8 @@ function openOverviewTripTip() {
     ensureAllDaysWeatherLoaded(function() {});
     return;
   }
-  /* 云端无缓存 → 走原流程（天气先行 → AI 生成/内置） */
-  openTripTipModal('<div style="color:#a0aec0;padding:24px 0;text-align:center;"><div class="spinner" style="margin:0 auto 10px;"></div>正在汇总整个行程的天气与旅途信息...</div>');
-  ensureAllDaysWeatherLoaded(function() {
-    if (GITHUB_CONFIG.hasAi()) {
-      buildOverviewTipWithAI(function(obj) {
-        if (obj) openTripTipModal(wrapAITipObject(obj));
-        else openTripTipModal(buildTripSummaryHtml());
-      });
-    } else {
-      openTripTipModal(buildTripSummaryHtml());
-    }
-  });
+  /* 云端无缓存 → 直接显示内置模板（不等待天气、不自动生成；生成交给工作流/手动刷新按钮） */
+  openTripTipModal(buildTripSummaryHtml());
 }
 
 /* A 改造：AI 生成总览旅途提示（JSON 板块）。经 fc_proxy genTips 单一入口，
