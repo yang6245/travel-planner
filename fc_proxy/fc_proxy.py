@@ -1,5 +1,5 @@
 # ============================================================
-# 阿里云函数计算 FC（Python 3）— GitHub API 代理（v7：新增 action=ai 大模型转发）
+# 阿里云函数计算 FC（Python 3）— GitHub API 代理（v8：新增 action=genTips 旅途提示生成单一入口）
 # 实测：FC 3.0 Web 函数（内置运行时）event 是 bytes，
 #       内容为「JSON 序列化的请求对象」（含 headers/body/httpMethod）。
 #       部分环境也可能传 HTTP 报文或 dict，本版全部兼容（JSON 优先，HTTP 兜底）。
@@ -7,6 +7,8 @@
 # 环境：无额外依赖（仅标准库）
 # v6：白名单开放 images/ 路径；新增 action=upload（图片 base64 直传，不二次编码）
 # v7：新增 action=ai（转发大模型请求：provider=deepseek|dashscope，key 由前端传入不落盘）
+# v8：新增 action=genTips——旅途提示生成单一入口（prompt 收敛至此，前端与 GitHub Actions 工作流共用，
+#     避免两份 prompt 维护）。返回 JSON 板块：DayTip 6 字段 / OverviewTip 5 字段。
 # ============================================================
 import base64
 import json
@@ -66,10 +68,13 @@ def handler(event, context):
     if action == 'upload':
         return _handle_upload(token, owner, repo, branch, path, payload.get('content'), payload.get('message'))
     if action == 'ai':
-        # 大模型转发（预留）：不涉及仓库白名单，key 由前端传入，不落盘；支持 OpenAI 兼容自定义接口
+        # 大模型转发：不涉及仓库白名单，key 由前端传入，不落盘；支持 OpenAI 兼容自定义接口
         return _handle_ai(payload.get('provider') or 'deepseek', payload.get('apiKey') or '',
                           payload.get('model') or '', payload.get('systemPrompt') or '',
                           payload.get('userPrompt') or '', payload.get('baseUrl') or '')
+    if action == 'genTips':
+        # 旅途提示生成单一入口（v8）：prompt 在本函数内构建，前端/工作流共用
+        return _handle_gentips(payload)
     return json_response({'error': '未知 action: %r' % action}, 400)
 
 
@@ -191,12 +196,27 @@ def _handle_save(token, owner, repo, branch, path, sha, content):
 
 
 def _handle_ai(provider, api_key, model, system_prompt, user_prompt, base_url):
-    """转发大模型请求（预留）：deepseek|dashscope 快捷，或自定义 OpenAI 兼容接口（baseUrl）。
+    """转发大模型请求（通用）：deepseek|dashscope 快捷，或自定义 OpenAI 兼容接口（baseUrl）。
     key 前端传入不落盘。"""
     if not api_key:
         return json_response({'error': '缺少 API Key'}, 400)
     if not user_prompt:
         return json_response({'error': '缺少 userPrompt'}, 400)
+    try:
+        text = _call_llm(provider, api_key, model, system_prompt, user_prompt, base_url, max_tokens=800)
+        return json_response({'ok': True, 'text': text})
+    except LLMError as e:
+        return json_response({'error': str(e)}, e.status)
+
+
+class LLMError(Exception):
+    def __init__(self, msg, status=502):
+        super().__init__(msg)
+        self.status = status
+
+
+def _resolve_llm_endpoint(provider, model, base_url):
+    """解析大模型请求地址与模型名；返回 (url, model)。"""
     if provider == 'dashscope':
         url = base_url or 'https://dashscope.aliyuncs.com/compatible-mode/v1/chat/completions'
         model = model or 'qwen-plus'
@@ -204,20 +224,29 @@ def _handle_ai(provider, api_key, model, system_prompt, user_prompt, base_url):
         url = base_url or 'https://api.deepseek.com/chat/completions'
         model = model or 'deepseek-chat'
     else:
-        # 自定义：任何 OpenAI 兼容 /v1/chat/completions 接口（如 Kimi/GLM/混元/硅基流动等）
         url = base_url or ''
         if not url:
-            return json_response({'error': '自定义 provider 需要在同步设置填写接口地址（baseUrl）'}, 400)
+            raise LLMError('自定义 provider 需要在同步设置填写接口地址（baseUrl）', 400)
         if not model:
-            return json_response({'error': '自定义 provider 需要填写模型名（model）'}, 400)
+            raise LLMError('自定义 provider 需要填写模型名（model）', 400)
+    return url, model
+
+
+def _call_llm(provider, api_key, model, system_prompt, user_prompt, base_url, max_tokens=800, temperature=0.7):
+    """调用大模型，返回文本内容。异常抛 LLMError（HTTPError → 原状态码，其余 502）。"""
+    if not api_key:
+        raise LLMError('缺少 API Key', 400)
+    if not user_prompt:
+        raise LLMError('缺少 userPrompt', 400)
+    url, model = _resolve_llm_endpoint(provider, model, base_url)
     body = {
         'model': model,
         'messages': [
             {'role': 'system', 'content': system_prompt or ''},
             {'role': 'user', 'content': user_prompt}
         ],
-        'temperature': 0.7,
-        'max_tokens': 800,
+        'temperature': temperature,
+        'max_tokens': max_tokens,
         'stream': False
     }
     req = urllib.request.Request(url, method='POST')
@@ -227,9 +256,138 @@ def _handle_ai(provider, api_key, model, system_prompt, user_prompt, base_url):
         with _urlopen_with_retry(req, data=json.dumps(body).encode('utf-8')) as resp:
             data = json.loads(resp.read().decode('utf-8'))
         text = (data.get('choices') or [{}])[0].get('message', {}).get('content', '')
-        return json_response({'ok': True, 'text': text})
+        return text or ''
     except urllib.error.HTTPError as e:
-        return json_response({'error': 'LLM 返回 %s' % e.code}, e.code)
+        raise LLMError('LLM 返回 %s' % e.code, e.code)
+    except Exception as e:
+        raise LLMError('转发失败: %s' % e, 502)
+
+
+def _extract_json(text):
+    """从 LLM 返回文本中容错提取 JSON 对象（允许 ```json 代码块 / 前后多余文字）。"""
+    if not text:
+        return None
+    s = str(text).strip()
+    # 去掉 Markdown 代码块围栏
+    s = s.replace('```json', '```').replace('```', '')
+    s = s.strip()
+    # 直接解析
+    try:
+        obj = json.loads(s)
+        if isinstance(obj, dict):
+            return obj
+    except (ValueError, TypeError):
+        pass
+    # 正则提取第一个 {...}
+    import re
+    m = re.search(r'\{[\s\S]*\}', s)
+    if not m:
+        return None
+    try:
+        obj = json.loads(m.group(0))
+        return obj if isinstance(obj, dict) else None
+    except (ValueError, TypeError):
+        return None
+
+
+# ---------- 旅途提示生成（genTips）：prompt 构建收敛于此，前端与工作流共用 ----------
+DAY_TIP_FIELDS = ['clothing', 'driving', 'food', 'fatigue', 'medicine', 'notice']
+OVERVIEW_TIP_FIELDS = ['clothing', 'driving', 'items', 'food', 'notice']
+
+
+def _build_tip_prompts(kind, day, risk, trip):
+    """构建 (system, user) prompt。trip 为行程摘要（前端/工作流传入）。"""
+    system = '你是资深自驾游领队，给出实用、贴心的旅途提示。'
+    days = (trip or {}).get('days') or []
+
+    if kind == 'day':
+        d = None
+        for x in days:
+            if int(x.get('day') or 0) == int(day or 0):
+                d = x
+                break
+        if d is None:
+            d = days[0] if days else {}
+        poi_lines = []
+        for p in (d.get('pois') or []):
+            line = '· ' + (p.get('time') or '') + ' ' + (p.get('name') or '')
+            if p.get('type'):
+                line += '（' + p.get('type') + '）'
+            if p.get('desc'):
+                line += '：' + p.get('desc')
+            poi_lines.append(line)
+        user = ('请为自驾游行程第 %s 天撰写旅途提示，当天安排如下：\n%s\n\n'
+                '严格按以下 JSON 对象返回（不要 Markdown 代码块，不要任何多余文字）：\n'
+                '{\n'
+                '  "clothing": "穿衣建议（1-3 条，用换行分隔）",\n'
+                '  "driving": "驾驶/路况注意（1-3 条，用换行分隔）",\n'
+                '  "food": "美食推荐（1-2 条，用换行分隔）",\n'
+                '  "fatigue": "体力/疲劳提醒（1-2 条，用换行分隔）",\n'
+                '  "medicine": "药品准备（1-2 条，结合海拔/天气按需取舍，用换行分隔）",\n'
+                '  "notice": "其他注意事项（1-3 条，如证件、离线地图等，用换行分隔）"\n'
+                '}\n'
+                '要求：每个字段都是字符串，条目之间用换行符分隔，内容简洁实用，总字数 250 字以内；'
+                '某字段无合适内容时填空字符串 ""。') % (day or d.get('day') or 1, '\n'.join(poi_lines) or '（暂无行程点）')
+    else:
+        lines = []
+        for d in days:
+            pois = '、'.join([(p.get('time') or '') + ' ' + (p.get('name') or '') for p in (d.get('pois') or [])])
+            lines.append('DAY%s（%s）：%s' % (d.get('day'), d.get('title') or '', pois))
+        risk_note = ''
+        if risk:
+            risk_note = '\n\n⚠️ 风险预警（务必在提示中重点提醒防雨/安全/保暖）：' + '；'.join(
+                [str(r) for r in risk if r])
+        user = ('自驾游行程总览如下：\n%s%s\n\n'
+                '请为整段旅程撰写旅途提示，严格按以下 JSON 对象返回（不要 Markdown 代码块，不要任何多余文字）：\n'
+                '{\n'
+                '  "clothing": "总体穿衣建议（1-3 条，用换行分隔）",\n'
+                '  "driving": "全程驾驶与路况注意（1-3 条，用换行分隔）",\n'
+                '  "items": "必带物品清单（1-4 条，用换行分隔）",\n'
+                '  "food": "美食与体验亮点（1-2 条，用换行分隔）",\n'
+                '  "notice": "注意事项（1-3 条，用换行分隔）"\n'
+                '}\n'
+                '要求：每个字段都是字符串，条目之间用换行符分隔，内容简洁实用，总字数 350 字以内；'
+                '某字段无合适内容时填空字符串 ""。') % ('\n'.join(lines) or '（暂无行程数据）', risk_note)
+    return system, user
+
+
+def _handle_gentips(payload):
+    """genTips：构建 prompt → 调 LLM → 提取 JSON 板块 → 返回 {ok, tip}。
+    请求体：{ action:'genTips', provider, apiKey, model, baseUrl, kind:'day'|'overview',
+              day?:number, risk?:string[]|null, trip:{tripName,subtitle,days:[...]} }"""
+    kind = payload.get('kind') or 'day'
+    if kind not in ('day', 'overview'):
+        return json_response({'error': 'kind 仅支持 day / overview'}, 400)
+    api_key = payload.get('apiKey') or ''
+    if not api_key:
+        return json_response({'error': '缺少 API Key'}, 400)
+    provider = payload.get('provider') or 'deepseek'
+    model = payload.get('model') or ''
+    base_url = payload.get('baseUrl') or ''
+    trip = payload.get('trip') or {}
+    try:
+        system, user = _build_tip_prompts(kind, payload.get('day') or 0,
+                                          payload.get('risk') or None, trip)
+        text = _call_llm(provider, api_key, model, system, user, base_url, max_tokens=1500)
+        tip = _extract_json(text)
+        if not tip:
+            return json_response({'ok': False, 'error': 'LLM 未返回合法 JSON', 'raw': text[:300]})
+        # 字段白名单：仅保留约定字段，避免脏数据
+        fields = DAY_TIP_FIELDS if kind == 'day' else OVERVIEW_TIP_FIELDS
+        clean = {}
+        for k in fields:
+            v = tip.get(k)
+            if isinstance(v, str):
+                clean[k] = v.strip()
+            elif isinstance(v, list):
+                clean[k] = '\n'.join([str(x).strip() for x in v if str(x).strip()])
+            else:
+                clean[k] = ''
+        if not any(clean.values()):
+            return json_response({'ok': False, 'error': 'LLM 返回 JSON 但字段全空', 'raw': text[:300]})
+        return json_response({'ok': True, 'tip': clean})
+    except LLMError as e:
+        return json_response({'error': str(e)}, e.status)
     except Exception as e:
         return json_response({'error': '转发失败: %s' % e}, 502)
 
