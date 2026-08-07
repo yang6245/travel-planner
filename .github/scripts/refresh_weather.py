@@ -219,8 +219,10 @@ def rain_level(dw, nw):
 
 
 def is_extreme_weather(dw, nw, win):
+    """极端天气：冰雹/暴雪/浓雾/大雾/沙尘/霾/6级+大风。
+    不匹配"雷"字——雷暴已由 get_display_weather 降级为"雷阵雨"（非极端），避免误报（22:54 修复）。"""
     s = (dw or '') + (nw or '')
-    if re.search('雷|雹|暴雪|浓雾|大雾|沙尘|霾', s):
+    if re.search('雹|暴雪|浓雾|大雾|沙尘|霾', s):
         return True
     m = re.search(r'(\d+)\s*级', win or '')
     if m and int(m.group(1)) >= 6:
@@ -229,9 +231,10 @@ def is_extreme_weather(dw, nw, win):
 
 
 def analyze_change(old_f, new_f, tier):
-    """复刻前端 analyzeChange：0=无 1=重大 2=特别重大。"""
-    severe_temp = [5, 10, 15][tier - 1]
-    major_temp = [3, 6, 10][tier - 1]
+    """复刻前端 analyzeChange：0=无 1=重大 2=特别重大。
+    温差阈值（22:54 用户要求 3℃→5℃）：tier1(今明) 重大≥5 特别重大≥8；tier2 ≥8/12；tier3 ≥12/16"""
+    severe_temp = [8, 12, 16][tier - 1]
+    major_temp = [5, 8, 12][tier - 1]
     level, text = 0, ''
     d_t = max(abs(float(new_f.get('dt') or 0) - float(old_f.get('dt') or 0)),
               abs(float(new_f.get('nt') or 0) - float(old_f.get('nt') or 0)))
@@ -352,8 +355,9 @@ def fetch_weather_snap(trip):
     return snap
 
 
-def gen_tips_via_fc(trip, risk_reasons):
-    """调 fc_proxy genTips 全量重生成（单一入口）；无 FC 配置返回 None（只刷天气）。"""
+def gen_tips_via_fc(trip, risk_reasons, changed_days=None):
+    """调 fc_proxy genTips 重生成（单一入口）；无 FC 配置返回 None（只刷天气）。
+    changed_days 为 None 时全量生成所有天，否则只生成指定天 + 总览（限流优化：减少 N+1 连发）。"""
     if not FC_URL or not AI_KEY:
         log('未配置 FC_PROXY_URL 或 AI_API_KEY，跳过 AI 重生成（仅刷新天气）')
         return None
@@ -375,9 +379,10 @@ def gen_tips_via_fc(trip, risk_reasons):
         'kind': 'day', 'day': 1, 'risk': None, 'trip': summary
     }
     results = {'overview': None, 'days': {}}
-    day_list = [d.get('day') for d in (trip.get('days') or []) if d.get('day')]
+    all_days = [d.get('day') for d in (trip.get('days') or []) if d.get('day')]
+    day_list = changed_days if changed_days is not None else all_days
 
-    def call(kind, day):
+    def call(kind, day, retry=0):
         body['kind'] = kind
         body['day'] = day or 0
         body['risk'] = (risk_reasons or None) if kind == 'overview' else None
@@ -386,16 +391,31 @@ def gen_tips_via_fc(trip, risk_reasons):
                                    method='POST', timeout=60,
                                    headers={'Content-Type': 'application/json'}))
             tip = resp.get('tip')
-            return tip if isinstance(tip, dict) else None
+            if isinstance(tip, dict):
+                return tip
+            # 服务端可能返回 error 字段（如 429 限流文案），按可重试处理
+            err = str(resp.get('error') or '')
+            if retry < 3 and ('429' in err or '超时' in err or 'timeout' in err):
+                backoff = 2.5 * (2 ** retry)   # 指数退避 2.5s/5s/10s
+                log('genTips(%s) 限流/超时 %s，%.1fs 后重试(%d/3)' % (kind, err, backoff, retry + 1))
+                time.sleep(backoff)
+                return call(kind, day, retry + 1)
+            return None
         except Exception as e:
-            log('genTips(%s) 失败: %s' % (kind, e))
+            msg = str(e)
+            if retry < 3 and ('429' in msg or '超时' in msg or 'timeout' in msg or '500' in msg or '502' in msg or '503' in msg):
+                backoff = 2.5 * (2 ** retry)
+                log('genTips(%s) 异常 %s，%.1fs 后重试(%d/3)' % (kind, msg, backoff, retry + 1))
+                time.sleep(backoff)
+                return call(kind, day, retry + 1)
+            log('genTips(%s) 失败: %s' % (kind, msg))
             return None
 
     for day in day_list:
         t = call('day', day)
         if t:
             results['days'][str(day)] = t
-        time.sleep(0.4)
+        time.sleep(2.0)   # 串行间隔 2s（原 0.4s），降低免费模型 RPM 限流概率
     results['overview'] = call('overview', 0)
     if not results['overview'] and not results['days']:
         return None
@@ -436,6 +456,7 @@ def process_trip(name, root):
     # 对比变化
     reasons = []
     changed = False
+    changed_dates = set()
     for date, nf in new_snap.items():
         of = old_snap.get(date)
         if not of:
@@ -443,6 +464,7 @@ def process_trip(name, root):
         level, text = analyze_change(of, nf, tier_for_date(date))
         if level >= 1:
             changed = True
+            changed_dates.add(date)
             reasons.append('%s：%s' % (date, text))
     # 生成风险（与前端一致：中大雨/极端天气）
     risk = None
@@ -452,16 +474,28 @@ def process_trip(name, root):
             s_list.append('%s（%s %s°C）' % (date, f.get('dw') or '', round(f.get('dt') or 0)))
     if s_list:
         risk = {'text': '；'.join(s_list), 'updatedAt': int(time.time() * 1000)}
-    # 重生成条件：有变化 且 距上次 >6h
+    # 重生成条件：有变化 且 距上次 >6h（只重生成有变化的那几天 + 总览，未变化的沿用旧提示，降低免费模型限流）
     ai_tips = dict(old_tips)
     if changed and (time.time() * 1000 - last_upd) > REGEN_MIN_INTERVAL_MS:
-        log('行程 %s 天气变化：%s，距上次 %dh，触发 AI 重生成' % (
-            name, '；'.join(reasons) if reasons else '有变化', (time.time() * 1000 - last_upd) // 3600000))
-        gen = gen_tips_via_fc(trip, reasons)
+        changed_days = []
+        if changed_dates:
+            for d in (trip.get('days') or []):
+                dt = get_day_date(trip.get('startDate') or '', d.get('day') or 1)
+                if dt in changed_dates:
+                    changed_days.append(d.get('day'))
+        log('行程 %s 天气变化 %d 天：%s，距上次 %dh，触发 AI 重生成（仅重生成 %s）' % (
+            name, len(changed_days), '；'.join(reasons) if reasons else '有变化',
+            (time.time() * 1000 - last_upd) // 3600000,
+            ('DAY' + str(changed_days)) if changed_days else '全部天'))
+        gen = gen_tips_via_fc(trip, reasons, changed_days or None)
         if gen:
+            old_days = (old_tips.get('days') or {})
+            merged_days = dict(old_days)
+            for k, v in (gen['days'] or {}).items():
+                merged_days[str(k)] = v
             ai_tips = {
                 'overview': gen['overview'] or (old_tips.get('overview') or ''),
-                'days': gen['days'] or (old_tips.get('days') or {}),
+                'days': merged_days,
                 'weatherSnap': new_snap,
                 'risk': risk,
                 'updatedAt': int(time.time() * 1000)
