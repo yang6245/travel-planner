@@ -3,14 +3,14 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0, user-scalable=yes">
-<meta name="theme-color" content="#2f6fed">
+<meta name="theme-color" content="#a0e098">
 <meta name="description" content="MiletoPuzhehei · 弥勒至普者黑行程规划">
 <title>MiletoPuzhehei · 弥勒至普者黑</title>
 <!-- PWA：添加到手机主屏幕显示图标（manifest + apple-touch-icon + favicon） -->
 <link rel="manifest" href="manifest-mileto.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
 <link rel="icon" type="image/png" href="icons/favicon-32.png">
-<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700;900&family=Noto+Sans+SC:wght@300;400;500;700&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
@@ -35,6 +35,7 @@
     --cat-other: #a55eea;
   }
   html, body { height: 100%; }
+  html { background: #a0e098; }
   body {
     font-family: 'Noto Sans SC', -apple-system, BlinkMacSystemFont, sans-serif;
     background: var(--bg);
@@ -391,20 +392,21 @@
   .weather-updated-text { font-size:11px; color:#718096; line-height:1.6; flex:1; min-width:180px; }
 
   /* ===== Q4 启动层（CSS-only，无视频/GIF）=====
-     布局（用户定制 v2）：照片放大居中，竖排文字在其下方逐字跳出，无副标题 */
+     布局（用户定制 v3）：左右关系——照片在左、竖排文字在右（站酷快乐体） */
   #splashOverlay {
     position:fixed; inset:0; z-index:9999;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
-    gap:18px; padding:0 6vw;
-    background:#2f6fed; color:#fff;
+    display:flex; flex-direction:row; align-items:center; justify-content:center;
+    gap:24px; padding:0 6vw;
+    background:#a0e098; color:#1e7d4f;
     transition:opacity .45s ease, visibility .45s ease;
   }
   #splashOverlay.splash-hidden { opacity:0; visibility:hidden; pointer-events:none; }
-  /* 照片容器（居中放大到 280px，透明完整显示） */
+  /* 照片容器（左侧，透明完整显示） */
   .splash-logo {
-    width:280px; height:289px;
+    width:200px; height:206px;
     display:flex; align-items:center; justify-content:center;
-    animation:splashLogoIn .7s ease both;
+    animation:splashLogoIn 1.2s ease both;   /* 舒缓档：照片 1.2s 淡入 */
+    flex:none;
   }
   .splash-logo img {
     width:100%; height:100%;
@@ -415,25 +417,26 @@
     0% { transform:scale(.72) translateY(14px); opacity:0; }
     100% { transform:scale(1) translateY(0); opacity:1; }
   }
-  /* 标题（照片下方）：纵向排列，逐字自上而下跳出 */
+  /* 标题（右侧）：竖排，逐字自上而下跳出；站酷快乐体（亲子可爱风） */
   .splash-title {
     display:flex; flex-direction:column; align-items:center;
-    font-size:36px; font-weight:800; letter-spacing:6px; line-height:1.5;
-    text-shadow:0 2px 16px rgba(0,0,0,.35);
+    font-family:'ZCOOL KuaiLe','Noto Sans SC',sans-serif;
+    font-size:34px; font-weight:400; letter-spacing:4px; line-height:1.5;
+    text-shadow:0 2px 16px rgba(255,255,255,.65);
   }
   .splash-title .splash-char {
     display:block; white-space:pre;
     opacity:0; transform:translateY(-18px);
-    animation:splashCharIn .45s ease forwards;
+    animation:splashCharIn .8s ease forwards;   /* 舒缓档：每字 0.8s */
   }
   @keyframes splashCharIn {
     0% { opacity:0; transform:translateY(-18px); }
     100% { opacity:1; transform:translateY(0); }
   }
   @media (max-width:480px) {
-    #splashOverlay { gap:12px; }
-    .splash-logo { width:220px; height:227px; }
-    .splash-title { font-size:30px; letter-spacing:4px; }
+    #splashOverlay { gap:18px; }
+    .splash-logo { width:170px; height:175px; }
+    .splash-title { font-size:30px; letter-spacing:3px; }
   }
 
   /* ===== 风险条 v2（Q3 改造：低调红色感叹号图标 + 详情弹窗） ===== */
@@ -3342,7 +3345,7 @@ function startCloudPoll() {
 }
 
 /* ====================== Q4 启动层 ====================== */
-/* trip.splash 配置块：{logo, bg, title}；缺省回退 icons/splash-logo.png + #2f6fed + 行程名。
+/* trip.splash 配置块：{logo, bg, title}；缺省回退 icons/splash-logo.png + #a0e098 + 行程名。
    动画为 CSS-only（禁止视频/GIF）；移除带 ≤3s 超时兜底，隐藏后 pointer-events 失效不挡交互。 */
 var _splashShown = false;
 function renderSplash() {
@@ -3358,7 +3361,7 @@ function applySplashConfig() {
   if (!overlay) return;
   var splash = (trip && trip.splash) || {};
   var logo = splash.logo || 'icons/splash-logo.png';
-  var bg = splash.bg || '#2f6fed';
+  var bg = splash.bg || '#a0e098';
   var title = splash.title || '带我去旅游';   /* 缺省固定文案（用户要求） */
   var img = document.getElementById('splashLogoImg');
   if (img && img.src.indexOf(logo) === -1) img.src = logo;
@@ -3376,7 +3379,7 @@ function setSplashTitle(text) {
   var chars = s.split('');
   for (var i = 0; i < chars.length; i++) {
     var c = chars[i];
-    var delay = (0.2 + i * 0.08).toFixed(2);
+    var delay = (0.6 + i * 0.4).toFixed(2);   /* 舒缓档：首字 0.6s 起，字间隔 0.4s */
     html += '<span class="splash-char" style="animation-delay:' + delay + 's;">' +
             (c === ' ' ? '&nbsp;' : escapeHtml(c)) + '</span>';
   }
