@@ -2620,11 +2620,12 @@ function callGenTips(params, onResult) {
     onResult(null);
   }).catch(function(e) {
     var msg = String((e && e.message) || e);
-    /* 429 限流/超时自动重试（最多 3 次，间隔 2.5s）——智谱等免费 key 常见限流 */
+    /* 429 限流/超时自动重试（最多 3 次，指数退避 2.5s/5s/10s）——智谱等免费 key 常见限流，退避等待限流窗口 */
     if ((msg.indexOf('429') >= 0 || msg.indexOf('超时') >= 0 || msg.indexOf('timeout') >= 0) && _retryCount < 3) {
       _retryCount++;
-      _logAi(false, 'genTips 第 ' + _retryCount + ' 次失败（' + msg + '），2.5s 后重试');
-      setTimeout(doRequest, 2500);
+      var backoff = 2500 * Math.pow(2, _retryCount - 1);
+      _logAi(false, 'genTips 第 ' + _retryCount + ' 次失败（' + msg + '），' + (backoff / 1000) + 's 后重试');
+      setTimeout(doRequest, backoff);
       return;
     }
     _logAi(false, msg);
@@ -4220,7 +4221,7 @@ function generateAllAITips(restore, riskReasons) {
       var day = dayList[idx]; idx++;
       callGenTips({ kind: 'day', day: day }, function(tip) {
         if (tip) results.days[day] = tip;
-        setTimeout(nextDay, 1500);   /* 串行间隔 1.5s，进一步降低免费模型限流概率 */
+        setTimeout(nextDay, 2000);   /* 串行间隔 2s（原 1.5s），降低免费模型 RPM 限流概率 */
       });
     } else {
       callGenTips({ kind: 'overview', risk: riskReasons }, function(tip) {
