@@ -1878,7 +1878,7 @@
       </div>
     </div>
     <div class="weather-refresh-row">
-      <div class="weather-updated-text" id="weatherUpdatedText">天气数据更新于 -- · AI 旅途提示更新于 --</div>
+      <div class="weather-updated-text" id="weatherUpdatedText">天气数据更新于 --</div>
     </div>
     <div class="weather-modal-body" id="weatherSummary"></div>
   </div>
@@ -1978,7 +1978,11 @@
   <div class="modal-content" style="max-width:560px;max-height:86vh;">
     <div style="display:flex;justify-content:space-between;align-items:center;padding:14px 18px;border-bottom:1px solid #e2e8f0;">
       <h2 style="margin:0;font-size:17px;">💡 旅途提示</h2>
-      <button class="modal-close" onclick="closeDayTripTipModal()" aria-label="关闭"><svg class="icon"><use xlink:href="#icon-close"/></svg></button>
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span class="weather-updated-text" id="tripTipUpdatedText" style="font-size:11px;color:#a0aec0;margin-right:2px;">AI 旅途提示更新于 --</span>
+        <button class="weather-refresh-btn" id="tripTipRefreshBtn" onclick="refreshTripTipNow()" title="重新生成当前旅途提示（管理员或有 Token 游客可用）"><svg class="icon" style="font-size:12px;"><use xlink:href="#icon-clock"/></svg>重新生成</button>
+        <button class="modal-close" onclick="closeDayTripTipModal()" aria-label="关闭"><svg class="icon"><use xlink:href="#icon-close"/></svg></button>
+      </div>
     </div>
     <div id="dayTripTipModalContent" style="overflow-y:auto;max-height:calc(86vh - 60px);padding:8px 18px 18px;"></div>
   </div>
@@ -2541,6 +2545,8 @@ function parseAIJson(text) {
    params: { kind:'day'|'overview', day?:number, risk?:string[] } */
 function callGenTips(params, onResult) {
   if (!GITHUB_CONFIG.hasAi()) { onResult(null); return; }
+  var _retryCount = 0;   /* 429/超时重试次数（外部计数，最多 3 次） */
+  function doRequest() {
   var cfg = GITHUB_CONFIG.getAiConfig();
   var fcUrl = GITHUB_CONFIG.hasFcProxy() ? GITHUB_CONFIG.getFcProxyUrl() : '';
   if (!fcUrl) {
@@ -2592,13 +2598,23 @@ function callGenTips(params, onResult) {
     onResult(null);
   }).catch(function(e) {
     var msg = String((e && e.message) || e);
+    /* 429 限流/超时自动重试（最多 3 次，间隔 2.5s）——智谱等免费 key 常见限流 */
+    if ((msg.indexOf('429') >= 0 || msg.indexOf('超时') >= 0 || msg.indexOf('timeout') >= 0) && _retryCount < 3) {
+      _retryCount++;
+      _logAi(false, 'genTips 第 ' + _retryCount + ' 次失败（' + msg + '），2.5s 后重试');
+      setTimeout(doRequest, 2500);
+      return;
+    }
     _logAi(false, msg);
     updateAiLogs();
     console.warn('AI 提示生成失败，回退内置模板:', msg);
     showToast('⚠️ AI 生成失败：' + msg + '（已用内置模板）');
     onResult(null);
   });
+  }
+  doRequest();
 }
+
 /* ===== AI 配置（预留）：同步设置弹窗内编辑，未启用不影响任何功能 ===== */
 function saveAiConfig() {
   var cfg = GITHUB_CONFIG.getAiConfig();
@@ -4134,11 +4150,50 @@ function toggleTripTip(panelId) {
 }
 
 /* 打开旅途提示弹窗（通用，传入 HTML 内容即可） */
+var _tipModalCtx = { kind: 'overview' };   /* 记录当前旅途提示弹窗上下文：{kind:'day',day:n} 或 {kind:'overview'}，供"重新生成"使用 */
 function openTripTipModal(html) {
   document.getElementById('dayTripTipModalContent').innerHTML = html;
   var modal = document.getElementById('dayTripTipModal');
   modal.classList.add('show');
   modal.style.display = 'flex';
+  updateTripTipUpdatedText();
+  updateTripTipRefreshBtn();
+}
+
+/* 旅途提示弹窗内的"重新生成"按钮：仅管理员或有 Token 游客可见可点 */
+function updateTripTipRefreshBtn() {
+  var btn = document.getElementById('tripTipRefreshBtn');
+  if (btn) btn.style.display = GITHUB_CONFIG.hasToken() ? 'inline-flex' : 'none';
+}
+
+/* 重新生成当前旅途提示（总览或某一天），写回云端，游客下次打开即看到新版。
+   云端保存由 buildXxxWithAI → persistAITips 内部完成（自己管理临时 Token） */
+var _refreshingTripTip = false;
+function refreshTripTipNow() {
+  if (_refreshingTripTip) return;
+  if (!GITHUB_CONFIG.hasToken()) { showToast('重新生成需要 Token（进入编辑模式后可用）'); return; }
+  var btn = document.getElementById('tripTipRefreshBtn');
+  _refreshingTripTip = true;
+  if (btn) { btn.disabled = true; btn.textContent = '生成中...'; }
+  function finish() {
+    _refreshingTripTip = false;
+    if (btn) { btn.disabled = false; btn.textContent = '重新生成'; }
+  }
+  var ctx = _tipModalCtx || { kind: 'overview' };
+  openTripTipModal('<div style="color:#a0aec0;padding:24px 0;text-align:center;"><div class="spinner" style="margin:0 auto 10px;"></div>正在重新生成旅途提示...</div>');
+  if (ctx.kind === 'day') {
+    buildDayTripTipWithAI(ctx.day, function(obj) {
+      if (obj) openTripTipModal(wrapAITipObject(obj));
+      else { openTripTipModal(buildDayTripTipModalContent(ctx.day)); showToast('⚠️ 生成失败，已用内置模板'); }
+      finish();
+    });
+  } else {
+    buildOverviewTipWithAI(function(obj) {
+      if (obj) openTripTipModal(wrapAITipObject(obj));
+      else { openTripTipModal(buildTripSummaryHtml()); showToast('⚠️ 生成失败，已用内置模板'); }
+      finish();
+    });
+  }
 }
 
 /* 关闭旅途提示弹窗 */
@@ -4357,7 +4412,7 @@ function generateAllAITips(restore, riskReasons) {
       var day = dayList[idx]; idx++;
       callGenTips({ kind: 'day', day: day }, function(tip) {
         if (tip) results.days[day] = tip;
-        setTimeout(nextDay, 400);   /* 串行间隔 400ms，降低免费模型限流概率 */
+        setTimeout(nextDay, 1500);   /* 串行间隔 1.5s，进一步降低免费模型限流概率 */
       });
     } else {
       callGenTips({ kind: 'overview', risk: riskReasons }, function(tip) {
@@ -4390,6 +4445,7 @@ function generateAllAITips(restore, riskReasons) {
     writeAiTipsCache(trip.aiTips);
     updateRiskBar();
     updateWeatherUpdatedText();
+    updateTripTipUpdatedText();
     showToast('✅ AI 旅途提示已生成并保存');
     cloudSave(trip).then(function() { restore(); }).catch(function() { restore(); });
   }
@@ -4429,6 +4485,7 @@ function ensureAITipsAuto() {
     trip.aiTips = cached;
     updateRiskBar();
     updateWeatherUpdatedText();
+    updateTripTipUpdatedText();
     return;
   }
   var restore = withTemporaryToken();
@@ -4569,9 +4626,14 @@ function updateWeatherUpdatedText() {
   var el = document.getElementById('weatherUpdatedText');
   if (!el) return;
   var wu = (trip && trip.weatherUpdatedAt) || 0;
+  el.textContent = '天气数据更新于 ' + relativeTime(wu);
+}
+/* 旅途提示弹窗内 AI 提示更新时间（独立于天气弹窗） */
+function updateTripTipUpdatedText() {
+  var el = document.getElementById('tripTipUpdatedText');
+  if (!el) return;
   var au = (trip && trip.aiTips && trip.aiTips.updatedAt) || 0;
-  el.textContent = '天气数据更新于 ' + relativeTime(wu) +
-                   ' · AI 旅途提示更新于 ' + relativeTime(au);
+  el.textContent = 'AI 旅途提示更新于 ' + relativeTime(au);
 }
 /* 刷新按钮仅"管理员或有 Token 游客"可见可点 */
 function updateWeatherRefreshBtn() {
@@ -4616,6 +4678,7 @@ function refreshAllWeatherNow() {
    优化（D 项体验）：云端已有 AI 缓存时**立即显示**（不等天气加载），天气后台异步加载
    仅云端无缓存时走原流程：ensureDayWeatherLoaded → buildDayTripTipWithAI/内置模板 */
 function openDayTripTipModal(day) {
+  _tipModalCtx = { kind: 'day', day: day };
   var saved = trip.aiTips && trip.aiTips.days && trip.aiTips.days[day];
   if (saved) {
     /* 秒开云端缓存（不等天气）—— 这是用户期待的体验 */
@@ -4725,6 +4788,7 @@ function ensureDayWeatherLoaded(day, callback) {
    30+ POI × 350ms 串行等天气慢到 10+ 秒，先显缓存才是用户期待的体验。
    天气后台异步加载用于天气卡显示。 */
 function openOverviewTripTip() {
+  _tipModalCtx = { kind: 'overview' };
   var saved = trip.aiTips && trip.aiTips.overview;
   if (saved) {
     /* 秒开云端缓存（不等天气） */
