@@ -1,0 +1,28 @@
+# Q3 服务端自动化：每 30 分钟刷新天气 + AI 旅途提示（闲置关闭由脚本内 last_access.json 判定）
+name: Auto Refresh Weather & AI Tips
+
+on:
+  schedule:
+    - cron: '*/30 * * * *'        # 每 30 分钟
+  workflow_dispatch:              # 支持手动触发
+
+permissions:
+  contents: write                 # 写回 trip.json / last_access.json 需要
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run weather & AI refresh
+        env:
+          GH_TOKEN: ${{ secrets.GH_TOKEN }}        # 写入 PAT（最小权限，仅授权本仓库）
+          AI_API_KEY: ${{ secrets.AI_API_KEY }}    # 服务端共享 AI key（genTips 用）
+          AI_PROVIDER: ${{ secrets.AI_PROVIDER }}
+          AI_MODEL: ${{ secrets.AI_MODEL }}
+          AI_BASE_URL: ${{ secrets.AI_BASE_URL }}
+          FC_PROXY_URL: ${{ secrets.FC_PROXY_URL }}
+          AMAP_KEY: ${{ secrets.AMAP_KEY }}        # 可选：未配置时自动从 index.html 提取
+        run: python .github/scripts/refresh_weather.py
