@@ -394,56 +394,49 @@
   .weather-updated-text { font-size:11px; color:#718096; line-height:1.6; flex:1; min-width:180px; }
 
   /* ===== Q4 启动层（CSS-only，无视频/GIF）=====
-     布局（用户定制）：照片放大靠左，竖排文字在右，逐字自上而下跳出 */
+     布局（用户定制 v2）：照片放大居中，竖排文字在其下方逐字跳出，无副标题 */
   #splashOverlay {
     position:fixed; inset:0; z-index:9999;
-    display:flex; flex-direction:row; align-items:center; justify-content:center;
-    gap:26px; padding:0 6vw;
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:18px; padding:0 6vw;
     background:#2f6fed; color:#fff;
     transition:opacity .45s ease, visibility .45s ease;
   }
   #splashOverlay.splash-hidden { opacity:0; visibility:hidden; pointer-events:none; }
-  /* 照片容器（左侧）：透明背景完整显示，不裁切、不加背景 */
+  /* 照片容器（居中放大到 280px，透明完整显示） */
   .splash-logo {
-    width:160px; height:165px;
+    width:280px; height:289px;
     display:flex; align-items:center; justify-content:center;
     animation:splashLogoIn .7s ease both;
-    flex:none;
   }
   .splash-logo img {
     width:100%; height:100%;
     object-fit:contain;              /* 完整显示，不裁切 */
-    filter:drop-shadow(0 6px 18px rgba(0,0,0,.25));   /* 透明贴纸投影，更有层次 */
+    filter:drop-shadow(0 10px 28px rgba(0,0,0,.3));   /* 透明贴纸投影，更有层次 */
   }
   @keyframes splashLogoIn {
     0% { transform:scale(.72) translateY(14px); opacity:0; }
     100% { transform:scale(1) translateY(0); opacity:1; }
   }
-  /* 标题（右侧）：纵向排列，逐字自上而下跳出 */
+  /* 标题（照片下方）：纵向排列，逐字自上而下跳出 */
   .splash-title {
-    display:flex; flex-direction:column; align-items:flex-start;
-    font-size:30px; font-weight:800; letter-spacing:2px; line-height:1.45;
-    text-shadow:0 2px 14px rgba(0,0,0,.3);
-    margin-left:2vw;
+    display:flex; flex-direction:column; align-items:center;
+    font-size:36px; font-weight:800; letter-spacing:6px; line-height:1.5;
+    text-shadow:0 2px 16px rgba(0,0,0,.35);
   }
   .splash-title .splash-char {
     display:block; white-space:pre;
-    opacity:0; transform:translateY(-16px);
+    opacity:0; transform:translateY(-18px);
     animation:splashCharIn .45s ease forwards;
   }
   @keyframes splashCharIn {
-    0% { opacity:0; transform:translateY(-16px); }
+    0% { opacity:0; transform:translateY(-18px); }
     100% { opacity:1; transform:translateY(0); }
   }
-  .splash-sub {
-    margin-top:6px; font-size:12px; opacity:.75; letter-spacing:1px;
-    animation:splashTitleIn .6s .3s ease both;
-  }
-  @keyframes splashTitleIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
   @media (max-width:480px) {
-    #splashOverlay { gap:20px; }
-    .splash-logo { width:120px; height:124px; }
-    .splash-title { font-size:26px; }
+    #splashOverlay { gap:12px; }
+    .splash-logo { width:220px; height:227px; }
+    .splash-title { font-size:30px; letter-spacing:4px; }
   }
 
   /* ===== 风险条 v2（Q3 改造：低调红色感叹号图标 + 详情弹窗） ===== */
@@ -1493,8 +1486,7 @@
   <div class="splash-logo">
     <img id="splashLogoImg" src="icons/splash-logo.png" alt="">
   </div>
-  <div class="splash-title" id="splashTitle">行程加载中</div>
-  <div class="splash-sub" id="splashSub">Loading Journey</div>
+  <div class="splash-title" id="splashTitle">带我去旅游</div>
 </div>
 
 <!-- SVG 图标定义 -->
@@ -3188,7 +3180,7 @@ function applySplashConfig() {
   var splash = (trip && trip.splash) || {};
   var logo = splash.logo || 'icons/splash-logo.png';
   var bg = splash.bg || '#2f6fed';
-  var title = splash.title || (trip && trip.tripName) || '';
+  var title = splash.title || '带我去旅游';   /* 缺省固定文案（用户要求） */
   var img = document.getElementById('splashLogoImg');
   if (img && img.src.indexOf(logo) === -1) img.src = logo;
   if (bg) overlay.style.background = bg;
@@ -3200,7 +3192,7 @@ function setSplashTitle(text) {
   var tEl = document.getElementById('splashTitle');
   if (!tEl) return;
   var s = String(text || '').trim();
-  if (!s) { tEl.textContent = '行程加载中'; return; }
+  if (!s) { tEl.textContent = '带我去旅游'; return; }
   var html = '';
   var chars = s.split('');
   for (var i = 0; i < chars.length; i++) {
