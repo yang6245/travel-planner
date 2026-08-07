@@ -9,7 +9,9 @@
 <!-- PWA：添加到手机主屏幕显示图标（manifest + apple-touch-icon + favicon） -->
 <link rel="manifest" href="manifest-mileto.json">
 <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
-<link rel="icon" type="image/png" href="icons/favicon-32.png">
+<!-- 大 favicon（192px）：鸿蒙4.3等系统"添加到桌面"走快捷方式不读 manifest，需大图标才显示 -->
+<link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+<link rel="icon" type="image/png" sizes="32x32" href="icons/favicon-32.png">
 <link href="https://fonts.googleapis.com/css2?family=Noto+Serif+SC:wght@400;500;700;900&family=Noto+Sans+SC:wght@300;400;500;700&family=ZCOOL+KuaiLe&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
 <style>
@@ -397,7 +399,7 @@
     position:fixed; inset:0; z-index:9999;
     display:flex; flex-direction:row; align-items:center; justify-content:center;
     gap:24px; padding:0 6vw;
-    background:#a0e098; color:#1e7d4f;
+    background:#a0e098; color:#fff;
     transition:opacity .45s ease, visibility .45s ease;
   }
   #splashOverlay.splash-hidden { opacity:0; visibility:hidden; pointer-events:none; }
@@ -422,7 +424,8 @@
     display:flex; flex-direction:column; align-items:center;
     font-family:'ZCOOL KuaiLe','Noto Sans SC',sans-serif;
     font-size:34px; font-weight:400; letter-spacing:4px; line-height:1.5;
-    text-shadow:0 2px 16px rgba(255,255,255,.65);
+    color:#fff;                                /* 用户要求：白字 */
+    text-shadow:0 2px 10px rgba(46,125,80,.5); /* 深绿阴影保证浅绿底上白字可读 */
   }
   .splash-title .splash-char {
     display:block; white-space:pre;
@@ -3362,14 +3365,18 @@ function startCloudPoll() {
 
 /* ====================== Q4 启动层 ====================== */
 /* trip.splash 配置块：{logo, bg, title}；缺省回退 icons/splash-logo.png + #a0e098 + 行程名。
-   动画为 CSS-only（禁止视频/GIF）；移除带 ≤3s 超时兜底，隐藏后 pointer-events 失效不挡交互。 */
+   动画为 CSS-only（禁止视频/GIF）；移除带 ≤4.5s 超时兜底，隐藏后 pointer-events 失效不挡交互。
+   停留策略：动画播完（照片 1.2s + 首字 0.6s 起 + 5 字×0.4s 间隔 + 末字 0.8s ≈ 3.2s）后
+   再停留 1s 才淡出（约 4.2s 总时长），数据就绪也不会提前切走 */
 var _splashShown = false;
+var _splashStartTime = 0;
 function renderSplash() {
   if (_splashShown) return;
   _splashShown = true;
+  _splashStartTime = Date.now();
   applySplashConfig();
-  /* ≤3s 超时兜底：无论数据是否加载完成，最多展示 3 秒后强制移除 */
-  setTimeout(hideSplash, 3000);
+  /* ≤4.5s 超时兜底：无论数据是否加载完成，最多展示 4.5 秒后强制移除 */
+  setTimeout(hideSplash, 4500);
 }
 /* 用当前 trip（可能尚未加载）刷新启动层内容 */
 function applySplashConfig() {
@@ -3401,14 +3408,21 @@ function setSplashTitle(text) {
   }
   tEl.innerHTML = html;
 }
-/* 数据就绪后调用：立即移除启动层（不等到 3s 超时） */
+/* 数据就绪后调用：动画播完 + 停留 1s 后再淡出（不提前切走） */
 function hideSplash() {
   var overlay = document.getElementById('splashOverlay');
   if (!overlay) return;
   overlay.classList.add('splash-hidden');
 }
 function finishSplash() {
-  try { applySplashConfig(); hideSplash(); } catch(e) {}
+  try {
+    applySplashConfig();
+    /* 距启动层开始展示已过的时间；若未满"动画+停留"窗口（约 4.2s），延迟到窗口结束再隐藏 */
+    var elapsed = Date.now() - _splashStartTime;
+    var remain = 4200 - elapsed;
+    if (remain > 0) { setTimeout(hideSplash, remain); }
+    else { hideSplash(); }
+  } catch(e) {}
 }
 
 function loadData() {
