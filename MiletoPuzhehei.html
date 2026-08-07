@@ -390,45 +390,47 @@
   .weather-refresh-btn:disabled { opacity:.55; cursor:not-allowed; }
   .weather-updated-text { font-size:11px; color:#718096; line-height:1.6; flex:1; min-width:180px; }
 
-  /* ===== Q4 启动层（CSS-only，无视频/GIF） ===== */
+  /* ===== Q4 启动层（CSS-only，无视频/GIF）=====
+     布局（用户定制）：照片放大靠左，竖排文字在右，逐字自上而下跳出 */
   #splashOverlay {
     position:fixed; inset:0; z-index:9999;
-    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    display:flex; flex-direction:row; align-items:center; justify-content:center;
+    gap:26px; padding:0 6vw;
     background:#2f6fed; color:#fff;
     transition:opacity .45s ease, visibility .45s ease;
   }
   #splashOverlay.splash-hidden { opacity:0; visibility:hidden; pointer-events:none; }
+  /* 照片容器（左侧）：透明背景完整显示，不裁切、不加背景 */
   .splash-logo {
-    width:96px; height:96px; border-radius:50%;
-    background:rgba(255,255,255,.16); border:2px solid rgba(255,255,255,.35);
-    display:flex; align-items:center; justify-content:center; overflow:hidden;
-    box-shadow:0 10px 40px rgba(0,0,0,.22);
+    width:160px; height:165px;
+    display:flex; align-items:center; justify-content:center;
     animation:splashLogoIn .7s ease both;
+    flex:none;
   }
-  .splash-logo img { width:100%; height:100%; object-fit:cover; }
+  .splash-logo img {
+    width:100%; height:100%;
+    object-fit:contain;              /* 完整显示，不裁切 */
+    filter:drop-shadow(0 6px 18px rgba(0,0,0,.25));   /* 透明贴纸投影，更有层次 */
+  }
   @keyframes splashLogoIn {
     0% { transform:scale(.72) translateY(14px); opacity:0; }
     100% { transform:scale(1) translateY(0); opacity:1; }
   }
-  .splash-ring {
-    position:absolute; width:132px; height:132px; border-radius:50%;
-    border:2px solid transparent; border-top-color:rgba(255,255,255,.85); border-right-color:rgba(255,255,255,.25);
-    animation:splashSpin 1.1s linear infinite; opacity:.9;
-  }
-  @keyframes splashSpin { to { transform:rotate(360deg); } }
-  /* 标题：逐字"播放"浮现（每个字独立 span，错峰动画，CSS-only 无 GIF/视频）。
-     初始 display:inline-block 保证动画生效；动画结束保持最终态（forwards） */
+  /* 标题（右侧）：纵向排列，逐字自上而下跳出 */
+  /* 标题（右侧）：纵向排列，逐字自上而下跳出 */
   .splash-title {
-    margin-top:18px; font-size:18px; font-weight:700; letter-spacing:2px;
-    text-shadow:0 2px 12px rgba(0,0,0,.25);
+    display:flex; flex-direction:column; align-items:flex-start;
+    font-size:30px; font-weight:800; letter-spacing:2px; line-height:1.45;
+    text-shadow:0 2px 14px rgba(0,0,0,.3);
+    margin-left:2vw;
   }
   .splash-title .splash-char {
-    display:inline-block; white-space:pre;
-    opacity:0; transform:translateY(10px);
-    animation:splashCharIn .4s ease forwards;
+    display:block; white-space:pre;
+    opacity:0; transform:translateY(-16px);
+    animation:splashCharIn .45s ease forwards;
   }
   @keyframes splashCharIn {
-    0% { opacity:0; transform:translateY(10px); }
+    0% { opacity:0; transform:translateY(-16px); }
     100% { opacity:1; transform:translateY(0); }
   }
   .splash-sub {
@@ -436,6 +438,11 @@
     animation:splashTitleIn .6s .3s ease both;
   }
   @keyframes splashTitleIn { from { opacity:0; transform:translateY(8px); } to { opacity:1; transform:translateY(0); } }
+  @media (max-width:480px) {
+    #splashOverlay { gap:20px; }
+    .splash-logo { width:120px; height:124px; }
+    .splash-title { font-size:26px; }
+  }
 
   /* ===== 风险条 v2（Q3 改造：低调红色感叹号图标 + 详情弹窗） ===== */
   #aiRiskIcon {
@@ -1469,8 +1476,9 @@
 
 <!-- Q4 启动层：CSS-only 动画（logo 缩放淡入 + 旋转光环 + 标题渐显）；init 超时 ≤3s 强制移除，隐藏后 pointer-events 失效 -->
 <div id="splashOverlay">
-  <div class="splash-logo"><img id="splashLogoImg" src="icons/splash-logo.png" alt=""></div>
-  <div class="splash-ring"></div>
+  <div class="splash-logo">
+    <img id="splashLogoImg" src="icons/splash-logo.png" alt="">
+  </div>
   <div class="splash-title" id="splashTitle">行程加载中</div>
   <div class="splash-sub" id="splashSub">Loading Journey</div>
 </div>
@@ -4610,13 +4618,21 @@ function refreshAllWeatherNow() {
 
 
 
-/* 详情页：打开当天旅途提示弹窗（先主动加载当天天气再生成内容，避免"暂无天气数据"） */
+/* 详情页：打开当天旅途提示弹窗
+   优化（D 项体验）：云端已有 AI 缓存时**立即显示**（不等天气加载），天气后台异步加载
+   仅云端无缓存时走原流程：ensureDayWeatherLoaded → buildDayTripTipWithAI/内置模板 */
 function openDayTripTipModal(day) {
+  var saved = trip.aiTips && trip.aiTips.days && trip.aiTips.days[day];
+  if (saved) {
+    /* 秒开云端缓存（不等天气）—— 这是用户期待的体验 */
+    openTripTipModal(wrapAITipContent(saved));
+    /* 后台异步加载当天天气（用于后续天气卡显示，不阻塞 UI） */
+    ensureDayWeatherLoaded(day, function() {});
+    return;
+  }
+  /* 云端无缓存 → 走原流程（天气先行） */
   openTripTipModal('<div style="color:#a0aec0;padding:20px 0;text-align:center;">正在加载当天天气与旅途信息...</div>');
   ensureDayWeatherLoaded(day, function() {
-    /* 优先显示云端共享的 AI 旅途提示（所有访客可见，兼容旧字符串/新 JSON）；无则本机生成/内置模板 */
-    var saved = trip.aiTips && trip.aiTips.days && trip.aiTips.days[day];
-    if (saved) { openTripTipModal(wrapAITipContent(saved)); return; }
     if (GITHUB_CONFIG.hasAi()) {
       buildDayTripTipWithAI(day, function(obj) {
         if (obj) openTripTipModal(wrapAITipObject(obj));
@@ -4710,13 +4726,22 @@ function ensureDayWeatherLoaded(day, callback) {
   });
 }
 
-/* 总览：打开行程总结弹窗（先主动加载所有天的天气，避免显示"未完全加载"） */
+/* 总览：打开行程总结弹窗
+   优化（D 项体验）：云端已有 AI 缓存时**立即显示**（不等所有天天气加载）——
+   30+ POI × 350ms 串行等天气慢到 10+ 秒，先显缓存才是用户期待的体验。
+   天气后台异步加载用于天气卡显示。 */
 function openOverviewTripTip() {
+  var saved = trip.aiTips && trip.aiTips.overview;
+  if (saved) {
+    /* 秒开云端缓存（不等天气） */
+    openTripTipModal(wrapAITipContent(saved));
+    /* 后台异步加载所有天天气（用于天气卡显示，不阻塞 UI） */
+    ensureAllDaysWeatherLoaded(function() {});
+    return;
+  }
+  /* 云端无缓存 → 走原流程（天气先行 → AI 生成/内置） */
   openTripTipModal('<div style="color:#a0aec0;padding:24px 0;text-align:center;"><div class="spinner" style="margin:0 auto 10px;"></div>正在汇总整个行程的天气与旅途信息...</div>');
   ensureAllDaysWeatherLoaded(function() {
-    /* 优先显示云端共享的 AI 总览旅途提示（所有访客可见，兼容旧字符串/新 JSON）；无则本机生成/内置板块 */
-    var saved = trip.aiTips && trip.aiTips.overview;
-    if (saved) { openTripTipModal(wrapAITipContent(saved)); return; }
     if (GITHUB_CONFIG.hasAi()) {
       buildOverviewTipWithAI(function(obj) {
         if (obj) openTripTipModal(wrapAITipObject(obj));
