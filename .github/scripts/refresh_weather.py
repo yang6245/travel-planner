@@ -435,16 +435,28 @@ def process_trip(name, root):
         return False
     if not trip.get('days'):
         return False
-    # 闲置关闭：now - lastAccess > 24h 跳过
-    if os.path.exists(access_path):
-        try:
-            la = json.load(open(access_path, encoding='utf-8')).get('lastAccess') or 0
-            idle = time.time() * 1000 - la
-            if idle > IDLE_HOURS * 3600 * 1000:
-                log('行程 %s 闲置 %.1fh > %dh，跳过（软关闭）' % (name, idle / 3600000.0, IDLE_HOURS))
-                return False
-        except Exception:
-            pass
+    # 过期判定：行程全部日期 < 今天（已结束），直接跳过、不调任何高德 API（根除对已结束行程的空耗）
+    trip_end = ''
+    for d in (trip.get('days') or []):
+        dt = get_day_date(trip.get('startDate') or '', d.get('day') or 1)
+        if dt and dt > trip_end:
+            trip_end = dt
+    if trip_end and day_diff_days(trip_end) < 0:
+        log('行程 %s 已结束（最后一天 %s < 今天），跳过天气刷新（省高德配额）' % (name, trip_end))
+        return False
+    # 闲置关闭：last_access 缺失（游客态/未用管理员态打开）或 idle>24h 均跳过
+    # 修复：原逻辑仅在文件存在时判定，缺失则默认全量拉，造成游客态永不触发的漏洞
+    if not os.path.exists(access_path):
+        log('行程 %s 无 last_access.json（游客态/未用管理员态打开），按闲置跳过' % name)
+        return False
+    try:
+        la = json.load(open(access_path, encoding='utf-8')).get('lastAccess') or 0
+        idle = time.time() * 1000 - la
+        if idle > IDLE_HOURS * 3600 * 1000:
+            log('行程 %s 闲置 %.1fh > %dh，跳过（软关闭）' % (name, idle / 3600000.0, IDLE_HOURS))
+            return False
+    except Exception:
+        pass
     # 拉天气生成快照
     new_snap = fetch_weather_snap(trip)
     if not new_snap:
